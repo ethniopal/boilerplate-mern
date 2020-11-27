@@ -8,6 +8,7 @@ const { JWT_SECRET } = require('../keys')
 const { requireLogin } = require('../middlewares/requireLogin')
 
 router.get('/', (req, res) => {
+	// require('../emails/config')
 	res.send('home')
 })
 
