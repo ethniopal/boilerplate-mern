@@ -15,7 +15,7 @@ function App() {
 	return (
 		<div className="App">
 			<Switch>
-				<Route path="/" exact>
+				<Route path={['/', '/login']} exact>
 					<Login />
 				</Route>
 				<Route path="/register" exact>

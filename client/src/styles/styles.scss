@@ -13,9 +13,14 @@ html {
 }
 body {
 	font-family: var(--ff-main);
+	overflow-x: hidden;
 	button {
 		font-family: var(--ff-main);
 	}
+}
+
+.outer-spacing {
+	margin: 1rem;
 }
 
 a {
