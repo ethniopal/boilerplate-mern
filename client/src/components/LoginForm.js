@@ -1,11 +1,15 @@
 import React from 'react'
+import { Redirect } from 'react-router-dom'
 //material-ui
 import { Paper, TextField, Button, FormControlLabel, Checkbox } from '@material-ui/core'
-
+import { Alert } from '@material-ui/lab/'
+//libs
 import { useForm } from 'react-hook-form'
-import { regexEmail } from '../../constants/regexPattern'
-
+import { isEmpty } from 'lodash'
 import styled from 'styled-components'
+
+//constant
+import { regexEmail } from '../constants/regexPattern'
 
 const LoginForm = ({ ...props }) => {
 	//form validation
@@ -38,18 +42,21 @@ const LoginForm = ({ ...props }) => {
 		console.log('succes')
 	}
 
+	//rendu
 	return (
 		<LoginFormStyled>
-			<Paper className="login-form" elevation={1}>
+			<Paper className="login-form" elevation={3}>
 				<h1 className="title">Connexion</h1>
 				<form className="outer-spacing" onSubmit={handleSubmit(onSubmit)}>
-					{isSubmitSuccessful && <div className="alert alert-success">Merci pour votre inscription</div>}
+					<div className="form-group">
+						{isSubmitSuccessful && <Redirect to="/dashboard" />}
 
-					{isSubmitted && errors && (
-						<div className="alert alert-error">
-							Veuillez corriger tous les erreurs avant de soumettre à nouveau le formulaire
-						</div>
-					)}
+						{!isSubmitSuccessful && isSubmitted && !isEmpty(errors) && (
+							<Alert severity="error">
+								Veuillez corriger tous les erreurs avant de soumettre à nouveau le formulaire
+							</Alert>
+						)}
+					</div>
 					<div className="form-group">
 						<TextField
 							id="username"
@@ -127,15 +134,7 @@ const LoginFormStyled = styled.div`
 	.login-form {
 		padding: 0.5rem;
 	}
-	.form-group {
-		padding: 0.5rem 0;
-	}
-	.flex-between {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		align-items: center;
-	}
+
 	.submit-button {
 		display: block;
 		margin: 0 auto;

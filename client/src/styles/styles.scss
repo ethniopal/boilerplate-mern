@@ -23,6 +23,16 @@ body {
 	margin: 1rem;
 }
 
+.form-group {
+	padding: 0.5rem 0;
+}
+.flex-between {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: center;
+}
+
 a {
 	text-decoration: none;
 }
