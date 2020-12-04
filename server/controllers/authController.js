@@ -1,22 +1,11 @@
 const express = require('express')
-const router = express.Router()
 const mongoose = require('mongoose')
 const User = mongoose.model('User')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../keys')
-const { requireLogin } = require('../middlewares/requireLogin')
 
-router.get('/', (req, res) => {
-	// require('../emails/config')
-	res.send('home')
-})
-
-router.get('/protected', requireLogin, (req, res) => {
-	res.send('hello user')
-})
-
-router.post('/signup', (req, res) => {
+const signUpController = (req, res) => {
 	const { name, email, password } = req.body
 	if (!name || !email || !password) {
 		return res.status(422).json({ error: 'please fill all fields' })
@@ -42,9 +31,9 @@ router.post('/signup', (req, res) => {
 			})
 		})
 		.catch(err => console.log(err))
-})
+}
 
-router.post('/signin', (req, res) => {
+const signInController = (req, res) => {
 	const { email, password } = req.body
 
 	if (!email || !password) {
@@ -70,6 +59,9 @@ router.post('/signin', (req, res) => {
 				.catch(err => console.log(err))
 		})
 		.catch(err => console.log(err))
-})
+}
 
-module.exports = router
+module.exports = {
+	signUpController,
+	signInController
+}

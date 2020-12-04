@@ -17,9 +17,9 @@ const requireLogin = (req, res, next) => {
 		User.findById(_id)
 			.then(userData => {
 				req.user = userData
+				next()
 			})
 			.catch(console.log(err => console.log(err)))
-		next()
 	})
 }
 
