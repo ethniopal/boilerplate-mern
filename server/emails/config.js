@@ -1,19 +1,35 @@
 const sgMail = require('@sendgrid/mail')
 const { SENDGRID_KEY } = require('../keys')
-
 sgMail.setApiKey(SENDGRID_KEY)
-const msg = {
-	to: 'olivier.lapointe87@gmail.com', // Change to your recipient
-	from: 'olivier.lapointe87@gmail.com', // Change to your verified sender
-	subject: 'Sending with SendGrid is Fun',
-	text: 'and easy to do anywhere, even with Node.js',
-	html: '<strong>and easy to do anywhere, even with Node.js</strong>'
+
+const settingEmail = {
+	from: 'olivier.lapointe87@gmail.com',
+	signature: `Voici le lien de l'application : http://crm.sotechnitram.com 
+	<br><br>Ce courriel est un envoie automatisé, veuillez ne pas y répondre.`
 }
-sgMail
-	.send(msg)
-	.then(() => {
-		console.log('Email sent')
-	})
-	.catch(error => {
-		console.error(error)
-	})
+
+function sendMail(msg) {
+	sgMail
+		.send(msg)
+		.then(response => {
+			console.log('Email sent : ' + msg.subject)
+		})
+		.catch(error => {
+			console.error(error)
+
+			if (error.response) {
+				// Extract error msg
+				const { message, code, response } = error
+
+				// Extract response msg
+				const { headers, body } = response
+
+				console.error(body)
+			}
+		})
+}
+
+module.exports = {
+	settingEmail,
+	sendMail
+}

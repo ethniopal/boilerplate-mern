@@ -1,25 +1,33 @@
 const express = require('express')
 const router = express.Router()
-const mongoose = require('mongoose')
-const User = mongoose.model('User')
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
-const { JWT_SECRET } = require('../keys')
 const { requireLogin } = require('../middlewares/requireLogin')
+const { customerController } = require('../controllers/customerController')
+const { permit } = require('../middlewares/permit')
 
-router.get('/customer/', requireLogin, createCustomerController)
+const { permission } = require('../constants/user')
 
-router.get('/customer/:idCustomer', requireLogin, createCustomerController)
-router.get('/customer/:idCustomer/contact/', requireLogin, createContactController)
-router.get('/customer/:idCustomer/contact/:idContact', requireLogin, createContactController)
+const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = permission
 
-router.post('/customer/create', requireLogin, createCustomerController)
-router.post('/customer/:idCustomer/contact/create', requireLogin, createContactController)
+//customers
+router.get('/customer', requireLogin, customerController.getAllCustomers)
+router.get('/customer/:idCustomer', requireLogin, customerController.getOneCustomer)
 
-router.delete('/customer/:idCustomer/delete', requireLogin, createCustomerController)
-router.delete('/customer/:idCustomer/contact/:idContact/delete', requireLogin, createContactController)
+router.post(
+	'/customer',
+	[requireLogin, permit(ADMIN, COLLABORATOR, SELLER, DISPATCHER)],
+	customerController.createCustomer
+)
+router.put(
+	'/customer/:idCustomer',
+	[requireLogin, permit(ADMIN, COLLABORATOR, SELLER, DISPATCHER)],
+	customerController.updateCustomer
+)
+router.delete('/customer/:idCustomer', [requireLogin, permit(ADMIN, COLLABORATOR)], customerController.deleteCustomer)
+router.patch('/customer/:idCustomer', [requireLogin, permit(ADMIN, COLLABORATOR)], customerController.archiveCustomer)
 
-router.patch('/customer/:idCustomer/update', requireLogin, createCustomerController)
-router.patch('/customer/:idCustomer/contact/:idContact/update', requireLogin, createContactController)
+//export
+router.get('/export/customers', permit(ADMIN), customerController.exportCustomer)
+router.put('/import/customers', permit(ADMIN), customerController.importCustomer)
 
+// router.post('/import/customers', requireLogin, customerController.exportCustomer)
 module.exports = router

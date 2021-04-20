@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
+import axios from 'axios'
 import { Redirect } from 'react-router-dom'
 //material-ui
 import { Paper, TextField, Button, FormControlLabel, Checkbox } from '@material-ui/core'
@@ -13,16 +14,54 @@ import GlobalStyles from 'assets/GlobalStyles'
 import { regexEmail } from '../../variables/regex'
 
 const LoginForm = ({ ...props }) => {
-	//form validation
-	const { register, handleSubmit, formState, errors, setError } = useForm({
+	// const history = useHistory()
+	const { REACT_APP_API_URL } = process.env
+
+	const [serverError, setServerError] = useState('')
+	const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false)
+
+	const { register, handleSubmit, formState, errors } = useForm({
 		mode: 'onTouched'
 	})
-	const { isSubmitting, isSubmitted, isSubmitSuccessful } = formState
+	const { isSubmitting, isSubmitted } = formState
 
 	//gestion du submit
-	const onSubmit = data => {
-		// console.log(data)
-		setError('other', { message: "Pas encore connecté à l'admin" })
+	const onSubmit = async data => {
+		if (isSubmitting) {
+			return
+		}
+		await setIsSubmitSuccessful(false)
+		await setServerError('')
+		const { username: email, password } = data
+		const jsonAuth = await JSON.stringify({ email, password })
+		await postAuthData(jsonAuth)
+	}
+
+	//requête pour envoyé les data de connexion
+	async function postAuthData(dataForm) {
+		if (isEmpty(dataForm)) {
+			return
+		}
+		try {
+			let responseAuth = await axios.post(`${REACT_APP_API_URL}/api/auth/signin`, dataForm, {
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+
+			let { data } = responseAuth
+			if (data.error) {
+				await setServerError(data.error)
+			} else {
+				localStorage.setItem('jwt', data.token)
+				localStorage.setItem('permission', data.permission)
+				localStorage.setItem('user', data.user)
+				window.location.href = '/admin/dashboard'
+				await setIsSubmitSuccessful(true)
+			}
+		} catch (error) {
+			await setServerError(error)
+		}
 	}
 
 	//gestion des erreurs
@@ -38,11 +77,6 @@ const LoginForm = ({ ...props }) => {
 		remember: {}
 	}
 
-	//si soumis correctement
-	if (isSubmitSuccessful) {
-		console.log('succes')
-	}
-
 	//rendu
 	return (
 		<>
@@ -53,12 +87,10 @@ const LoginForm = ({ ...props }) => {
 					<h1 className="title">Connexion</h1>
 					<form className="outer-spacing" onSubmit={handleSubmit(onSubmit)}>
 						<div className="form-group">
-							{isSubmitSuccessful && <Redirect to="/dashboard" />}
-
-							{!isSubmitSuccessful && isSubmitted && !isEmpty(errors) && (
+							{/* {isSubmitSuccessful && <Redirect to="/admin/dashboard" />} */}
+							{isSubmitted && !isEmpty(serverError) && (
 								<Alert severity="error">
-									Veuillez corriger tous les erreurs avant de soumettre à nouveau le formulaire{' '}
-									<ul>{errors.other.message && <li>{errors.other.message}</li>}</ul>
+									<b>{serverError}</b>
 								</Alert>
 							)}
 						</div>
@@ -94,7 +126,7 @@ const LoginForm = ({ ...props }) => {
 								inputRef={register(validations.password)}
 							/>
 						</div>
-						<div className="form-group flex-between">
+						{/* <div className="form-group flex-between">
 							<FormControlLabel
 								control={
 									<Checkbox
@@ -115,16 +147,15 @@ const LoginForm = ({ ...props }) => {
 							>
 								Mot de passe oublié ?
 							</Button>
-						</div>
+						</div> */}
 
 						<Button
-							disabled={isSubmitting}
+							// disabled={isSubmitting}
 							className="submit-button"
 							variant="outlined"
 							color="primary"
-							type="submit"
 							style={{ textTransform: 'none' }}
-							onClick={handleSubmit(onSubmit)}
+							type="submit"
 						>
 							Login
 						</Button>

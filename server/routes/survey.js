@@ -20,16 +20,16 @@ const {
 	updateQuestionController
 } = require('../controllers/surveyController')
 
-router.get('/surveys/', requireLogin, getAllSurveysController)
+router.get('/api/surveys/', requireLogin, getAllSurveysController)
 
-router.get('/surveys/:idSurvey', requireLogin, getSurveyController)
-router.get('/surveys/:idSurvey/question/', requireLogin, getQuestionController)
-router.get('/surveys/:idSurvey/question/create', requireLogin, createQuestionController)
+router.get('/api/surveys/:idSurvey', requireLogin, getSurveyController)
+router.get('/api/surveys/:idSurvey/question/', requireLogin, getQuestionController)
+router.get('/api/surveys/:idSurvey/question/create', requireLogin, createQuestionController)
 
-router.delete('/surveys/:idSurvey/delete', requireLogin, deleteSurveyController)
-router.delete('/surveys/:idSurvey/question/:idQuestion/delete', requireLogin, deleteQuestionController)
+router.delete('/api/surveys/:idSurvey/delete', requireLogin, deleteSurveyController)
+router.delete('/api/surveys/:idSurvey/question/:idQuestion/delete', requireLogin, deleteQuestionController)
 
-router.patch('/surveys/:idSurvey/update', requireLogin, updateSurveyController)
-router.patch('/surveys/:idSurvey/question/:idQuestion/update', requireLogin, updateQuestionController)
+router.patch('/api/surveys/:idSurvey/update', requireLogin, updateSurveyController)
+router.patch('/api/surveys/:idSurvey/question/:idQuestion/update', requireLogin, updateQuestionController)
 
 module.exports = router

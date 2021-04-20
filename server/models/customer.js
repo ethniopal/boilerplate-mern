@@ -5,7 +5,13 @@ const customerSchema = new mongoose.Schema(
 	{
 		name: {
 			type: String,
-			required: true
+			required: [true, 'Le nom de la compagnie est requis']
+		},
+		refNumber: {
+			type: String
+		},
+		refERP: {
+			type: String
 		},
 		contacts: [
 			{
@@ -13,6 +19,17 @@ const customerSchema = new mongoose.Schema(
 				ref: 'Contact'
 			}
 		],
+		mainContact: {
+			name: { type: String },
+			email: { type: String },
+			function: { type: String },
+			phone: {
+				phone: { type: String },
+				ext: { type: String },
+				mobile: { type: String },
+				fax: { type: String }
+			}
+		},
 		surveys: [
 			{
 				survey: {
@@ -32,14 +49,15 @@ const customerSchema = new mongoose.Schema(
 		phone: {
 			phone: {
 				type: String,
-				required: true
+				required: [true, 'Le téléphone de la compagnie est requis']
 			},
 			ext: {
-				type: Number
+				type: String
 			},
 			mobile: {
 				type: String
-			}
+			},
+			fax: { type: String }
 		},
 		address: {
 			address: {
@@ -58,22 +76,39 @@ const customerSchema = new mongoose.Schema(
 				type: String
 			}
 		},
-
+		website: {
+			type: String
+		},
 		email: {
-			type: String,
-			required: true
+			type: String
 		},
-		note: {
-			type: String,
-			required: true
+		language: {
+			type: String
 		},
-		users: {
+
+		attributions: [
+			{
+				attribution: {
+					type: ObjectID,
+					ref: 'User'
+				}
+			}
+		],
+		postedBy: {
+			type: ObjectID,
+			ref: 'User'
+		},
+		updatedBy: {
 			type: ObjectID,
 			ref: 'User'
 		},
 		status: {
 			type: String,
-			default: 'prospect'
+			default: 'Prospect'
+		},
+		archive: {
+			type: Boolean,
+			default: false
 		}
 	},
 	{

@@ -17,27 +17,38 @@
 */
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { createBrowserHistory } from 'history'
-import { Router, Route, Switch, Redirect } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
+//redux
+// import { Provider } from 'react-redux'
+// import store from './store'
 
 // core components
-import Admin from 'layouts/Admin.js'
-import LoginForm from 'components/LoginForm/LoginForm'
+import App from './App.js'
 
+//styles
+import 'primereact/resources/themes/saga-blue/theme.css'
+import 'primereact/resources/primereact.min.css'
+import 'primeicons/primeicons.css'
+
+import 'assets/css/bootstrap-grid.min.css'
 import 'assets/css/material-dashboard-react.css?v=1.9.0'
-// import GlobalStyles from './assets/GlobalStyles'
 
-const hist = createBrowserHistory()
+// var noOp = function () {}
+
+// window.console = {
+// 	log: noOp,
+// 	dir: noOp
+// }
 
 ReactDOM.render(
 	<>
-		<Router history={hist}>
-			<Switch>
-				<Route path={['/', '/login']} exact component={LoginForm} />
-				<Route path="/admin" component={Admin} />
-				<Redirect from="/" to="/admin/dashboard" />
-			</Switch>
-		</Router>
+		{/* <Provider store={store}> */}
+
+		<BrowserRouter>
+			<App />
+		</BrowserRouter>
+		{/* </Provider> */}
 	</>,
+
 	document.getElementById('root')
 )

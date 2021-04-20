@@ -1,163 +1,107 @@
 /*eslint-disable*/
-import React from "react";
-import classNames from "classnames";
-import PropTypes from "prop-types";
-import { NavLink } from "react-router-dom";
-// @material-ui/core components
-import { makeStyles } from "@material-ui/core/styles";
-import Drawer from "@material-ui/core/Drawer";
-import Hidden from "@material-ui/core/Hidden";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import Icon from "@material-ui/core/Icon";
-// core components
-import AdminNavbarLinks from "components/Navbars/AdminNavbarLinks.js";
-import RTLNavbarLinks from "components/Navbars/RTLNavbarLinks.js";
+import React, { useState } from 'react'
 
-import styles from "assets/jss/material-dashboard-react/components/sidebarStyle.js";
+import { NavLink } from 'react-router-dom'
+import List from '@material-ui/core/List'
+import ListItem from '@material-ui/core/ListItem'
+import ListItemIcon from '@material-ui/core/ListItemIcon'
+import ListItemText from '@material-ui/core/ListItemText'
+import Collapse from '@material-ui/core/Collapse'
+import ExpandLessIcon from '@material-ui/icons/ExpandLess'
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 
-const useStyles = makeStyles(styles);
+import { menu } from './menu'
+import { hasChildren, haveAccess } from '../../utils/utils'
 
-export default function Sidebar(props) {
-  const classes = useStyles();
-  // verifies if routeName is the one active (in browser input)
-  function activeRoute(routeName) {
-    return window.location.href.indexOf(routeName) > -1 ? true : false;
-  }
-  const { color, logo, image, logoText, routes } = props;
-  var links = (
-    <List className={classes.list}>
-      {routes.map((prop, key) => {
-        var activePro = " ";
-        var listItemClasses;
-        if (prop.path === "/upgrade-to-pro") {
-          activePro = classes.activePro + " ";
-          listItemClasses = classNames({
-            [" " + classes[color]]: true
-          });
-        } else {
-          listItemClasses = classNames({
-            [" " + classes[color]]: activeRoute(prop.layout + prop.path)
-          });
-        }
-        const whiteFontClasses = classNames({
-          [" " + classes.whiteFont]: activeRoute(prop.layout + prop.path)
-        });
-        return (
-          <NavLink
-            to={prop.layout + prop.path}
-            className={activePro + classes.item}
-            activeClassName="active"
-            key={key}
-          >
-            <ListItem button className={classes.itemLink + listItemClasses}>
-              {typeof prop.icon === "string" ? (
-                <Icon
-                  className={classNames(classes.itemIcon, whiteFontClasses, {
-                    [classes.itemIconRTL]: props.rtlActive
-                  })}
-                >
-                  {prop.icon}
-                </Icon>
-              ) : (
-                <prop.icon
-                  className={classNames(classes.itemIcon, whiteFontClasses, {
-                    [classes.itemIconRTL]: props.rtlActive
-                  })}
-                />
-              )}
-              <ListItemText
-                primary={props.rtlActive ? prop.rtlName : prop.name}
-                className={classNames(classes.itemText, whiteFontClasses, {
-                  [classes.itemTextRTL]: props.rtlActive
-                })}
-                disableTypography={true}
-              />
-            </ListItem>
-          </NavLink>
-        );
-      })}
-    </List>
-  );
-  var brand = (
-    <div className={classes.logo}>
-      <a
-        href="https://www.creative-tim.com?ref=mdr-sidebar"
-        className={classNames(classes.logoLink, {
-          [classes.logoLinkRTL]: props.rtlActive
-        })}
-        target="_blank"
-      >
-        <div className={classes.logoImage}>
-          <img src={logo} alt="logo" className={classes.img} />
-        </div>
-        {logoText}
-      </a>
-    </div>
-  );
-  return (
-    <div>
-      <Hidden mdUp implementation="css">
-        <Drawer
-          variant="temporary"
-          anchor={props.rtlActive ? "left" : "right"}
-          open={props.open}
-          classes={{
-            paper: classNames(classes.drawerPaper, {
-              [classes.drawerPaperRTL]: props.rtlActive
-            })
-          }}
-          onClose={props.handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true // Better open performance on mobile.
-          }}
-        >
-          {brand}
-          <div className={classes.sidebarWrapper}>
-            {props.rtlActive ? <RTLNavbarLinks /> : <AdminNavbarLinks />}
-            {links}
-          </div>
-          {image !== undefined ? (
-            <div
-              className={classes.background}
-              style={{ backgroundImage: "url(" + image + ")" }}
-            />
-          ) : null}
-        </Drawer>
-      </Hidden>
-      <Hidden smDown implementation="css">
-        <Drawer
-          anchor={props.rtlActive ? "right" : "left"}
-          variant="permanent"
-          open
-          classes={{
-            paper: classNames(classes.drawerPaper, {
-              [classes.drawerPaperRTL]: props.rtlActive
-            })
-          }}
-        >
-          {brand}
-          <div className={classes.sidebarWrapper}>{links}</div>
-          {image !== undefined ? (
-            <div
-              className={classes.background}
-              style={{ backgroundImage: "url(" + image + ")" }}
-            />
-          ) : null}
-        </Drawer>
-      </Hidden>
-    </div>
-  );
+const checkActive = (match, location) => {
+	//some additional logic to verify you are in the home URI
+	if (!location) return false
+	const { pathname } = location
+	// console.log(pathname)
+	return pathname === '/'
 }
 
-Sidebar.propTypes = {
-  rtlActive: PropTypes.bool,
-  handleDrawerToggle: PropTypes.func,
-  bgColor: PropTypes.oneOf(["purple", "blue", "green", "orange", "red"]),
-  logo: PropTypes.string,
-  image: PropTypes.string,
-  logoText: PropTypes.string,
-  routes: PropTypes.arrayOf(PropTypes.object),
-  open: PropTypes.bool
-};
+export default function Sidebar({ image, color, open }) {
+	return (
+		<div
+			className={`sidebar-menu ${open ? 'open' : ''}`}
+			style={{
+				position: 'fixed',
+				minHeight: '100%',
+				width: '100%',
+				maxWidth: '260px',
+				overflowY: 'auto',
+				backgroundImage: 'linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url(' + image + ')',
+				paddingTop: '70px',
+				backgroundRepear: 'no-repeat',
+				top: '0',
+				left: '0',
+				width: '100%',
+				height: 'calc(100% -70px)',
+				display: 'block',
+				zIndex: '9999',
+				position: 'absolute',
+				backgroundSize: 'cover',
+				backgroundPosition: 'center center',
+				color: '#fff'
+			}}
+		>
+			{menu.map((item, key) => (
+				<MenuItem key={key} item={item} />
+			))}
+		</div>
+	)
+}
+
+const MenuItem = ({ item }) => {
+	const Component = hasChildren(item) ? MultiLevel : SingleLevel
+	return <>{haveAccess(item?.permission) && <Component item={item} />}</>
+}
+
+const SingleLevel = ({ item }) => {
+	const link = item.link
+
+	return (
+		<>
+			{haveAccess(item?.permission) && (
+				<NavLink to={link} activeClassName="active" isActive={checkActive}>
+					<ListItem button>
+						<ListItemIcon style={{ color: 'white' }}>{item.icon}</ListItemIcon>
+						<ListItemText primary={item.title} />
+					</ListItem>
+				</NavLink>
+			)}
+		</>
+	)
+}
+
+const MultiLevel = ({ item }) => {
+	const { items: children } = item
+	const [open, setOpen] = useState(false)
+
+	const handleClick = () => {
+		setOpen(prev => !prev)
+	}
+
+	return (
+		<>
+			{haveAccess(item) && (
+				<div>
+					<ListItem button onClick={handleClick}>
+						<ListItemIcon style={{ color: 'white' }}>{item.icon}</ListItemIcon>
+						<ListItemText primary={item.title} />
+						{open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+					</ListItem>
+					<Collapse in={open} timeout="auto" unmountOnExit>
+						<List component="div" disablePadding>
+							{children.map((child, key) => {
+								const link = child.link || '/admin'
+								return <MenuItem key={key} item={child} />
+							})}
+						</List>
+					</Collapse>
+				</div>
+			)}
+		</>
+	)
+}
