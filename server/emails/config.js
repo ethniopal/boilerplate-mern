@@ -3,8 +3,8 @@ const { SENDGRID_KEY } = require('../keys')
 sgMail.setApiKey(SENDGRID_KEY)
 
 const settingEmail = {
-	from: 'olivier.lapointe87@gmail.com',
-	signature: `Voici le lien de l'application : http://crm.sotechnitram.com 
+	from: process.env.FROM_EMAIL,
+	signature: `Voici le lien de l'application : ${process.env.APP_URL} 
 	<br><br>Ce courriel est un envoie automatisé, veuillez ne pas y répondre.`
 }
 
