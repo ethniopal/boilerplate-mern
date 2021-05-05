@@ -5,6 +5,9 @@ import { makeStyles } from '@material-ui/core/styles'
 import Card from '../../components/Card/Card.js'
 import CardHeader from '../../components/Card/CardHeader.js'
 import CardBody from '../../components/Card/CardBody.js'
+import CardFooter from '../../components/Card/CardFooter.js'
+
+import Button from '../../components/CustomButtons/Button.js'
 
 import SubmissionForm from '../../components/Submission/SubmissionForm'
 
@@ -31,16 +34,12 @@ const styles = {
 const useStyles = makeStyles(styles)
 
 export default function SubmissionList(props) {
-	console.log(props)
 	const classes = useStyles()
 	return (
 		<div>
 			<Card>
 				<CardHeader color="info">
-					<h4 className={classes.cardTitleWhite}>Faire une soumission</h4>
-					<p className={classes.cardCategoryWhite}>
-						Veuillez sélectionner les soumissions que vous désirez voir
-					</p>
+					<h4 className={classes.cardTitleWhite}>Modifier une soumission</h4>
 				</CardHeader>
 				<CardBody>
 					<SubmissionForm {...props} />

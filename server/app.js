@@ -51,4 +51,10 @@ for (let route in routes) {
 	app.use('/api', routes[route])
 }
 
+app.use(express.static(path.join(__dirname, 'build')))
+
+app.get('/*', (req, res) => {
+	res.sendFile(path.join(__dirname, 'build', 'index.html'))
+})
+
 app.listen(PORT, () => console.log('server is running on ', PORT))

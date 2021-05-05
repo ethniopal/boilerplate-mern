@@ -10,6 +10,10 @@ const submissionSchema = new mongoose.Schema(
 			type: ObjectID,
 			ref: 'Customer'
 		},
+		contact: {
+			type: ObjectID,
+			ref: 'Contact'
+		},
 		address: {
 			source: {
 				address: {
@@ -93,7 +97,10 @@ const submissionSchema = new mongoose.Schema(
 					type: String
 				}
 			},
-			dimention: {
+			dimension: {
+				full: {
+					type: String
+				},
 				lenght: {
 					type: Number
 				},
@@ -108,11 +115,13 @@ const submissionSchema = new mongoose.Schema(
 				}
 			},
 			oversized: {
-				type: Boolean
+				type: Boolean,
+				default: false
 			},
 			hazmat: {
 				isHasmat: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				category: {
 					type: String
@@ -135,22 +144,27 @@ const submissionSchema = new mongoose.Schema(
 			//------- START international
 			international: {
 				overlaid: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				tailgateTruck: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				loadingDock: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				natureGoods: {
 					type: String
 				},
 				cargoInsurance: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				hazardousMaterial: {
-					type: Boolean
+					type: Boolean,
+					default: false
 				},
 				category: {
 					type: String
@@ -172,7 +186,8 @@ const submissionSchema = new mongoose.Schema(
 				type: String
 			},
 			toile: {
-				type: Boolean
+				type: Boolean,
+				default: false
 			},
 			details: {
 				type: String

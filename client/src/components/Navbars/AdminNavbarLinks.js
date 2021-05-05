@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, Redirect } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import classNames from 'classnames'
 // @material-ui/core components
 import { makeStyles } from '@material-ui/core/styles'
@@ -13,7 +13,7 @@ import Poppers from '@material-ui/core/Popper'
 import Divider from '@material-ui/core/Divider'
 // @material-ui/icons
 import Person from '@material-ui/icons/Person'
-import Notifications from '@material-ui/icons/Notifications'
+// import Notifications from '@material-ui/icons/Notifications'
 
 // core components
 import Button from 'components/CustomButtons/Button.js'
@@ -28,10 +28,10 @@ export default function AdminNavbarLinks() {
 	const [openNotification, setOpenNotification] = useState(null)
 	const [openProfile, setOpenProfile] = useState(null)
 
-	const handleClickNotification = event => {
-		setOpenProfile(null)
-		setOpenNotification(openNotification ? null : event.currentTarget)
-	}
+	// const handleClickNotification = event => {
+	// 	setOpenProfile(null)
+	// 	setOpenNotification(openNotification ? null : event.currentTarget)
+	// }
 
 	const handleClickProfile = event => {
 		setOpenNotification(null)

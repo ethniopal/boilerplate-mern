@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 
 //card
@@ -7,9 +7,6 @@ import CardHeader from '../Card/CardHeader.js'
 import CardBody from '../Card/CardBody.js'
 
 import DatagridActivity from './DatagridActivity'
-
-//icons
-import { Add } from '@material-ui/icons'
 
 //css
 const styles = {
@@ -34,8 +31,6 @@ const styles = {
 const useStyles = makeStyles(styles)
 
 const ContactTab = ({ customer, handleOpenNotification, ...props }) => {
-	let { customerId, option, id: activityId } = props.match.params
-
 	const classes = useStyles()
 	return (
 		<Card style={{ width: '100%' }}>

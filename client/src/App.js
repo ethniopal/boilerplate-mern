@@ -11,7 +11,6 @@ import GlobalStyles from './assets/GlobalStyles'
 
 // const hist = createBrowserHistory()
 // const token = localStorage.getItem('jwt')
-const isLoggedIn = true
 
 const AuthRouting = () => {
 	const location = useLocation()

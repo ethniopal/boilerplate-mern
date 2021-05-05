@@ -1,7 +1,7 @@
 import React from 'react'
-import { Assignment, Person, Dashboard, BubbleChart } from '@material-ui/icons'
+import { Assignment, Person, Dashboard } from '@material-ui/icons'
 import { userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR, SELLER, DISPATCHER } = userPermission
 
 export const menu = [
 	{

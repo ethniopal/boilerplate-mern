@@ -4,8 +4,10 @@ const Customer = mongoose.model('Customer')
 const { downloadResource, getQuery } = require('../utils/utils')
 const { permission, status: statusUser } = require('../constants/user')
 const { customerEmail } = require('../emails/customerEmail')
+const { contactController } = require('./contactController')
 const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = permission
 const customerController = {}
+
 // const { omit } = require('../utils/utils')
 
 /** Récupère une liste de client selon un filtre
@@ -39,8 +41,24 @@ customerController.getAllCustomers = async (req, res) => {
 		})
 	}
 
+	if (req.query.noAttribution === 'true') {
+		await Customer.find({ attributions: { $exists: true, $not: { $size: 0 } } })
+			.select(['_id', 'name', 'attributions'])
+			.then(companies => {
+				ejectedCompanyId = [...ejectedCompanyId, ...companies]
+			})
+	}
+	if (req.query.withAttribution === 'true') {
+		await Customer.find({ attributions: { $not: { $exists: true, $not: { $size: 0 } } } }).then(companies => {
+			ejectedCompanyId = [...ejectedCompanyId, ...companies]
+		})
+	}
+
 	query._id = { $nin: ejectedCompanyId }
 
+	if ([SELLER, DISPATCHER, GUESS].includes(req.user.permission) || req.query.myAttribution === 'true') {
+		query.attributions = { $in: [req.user._id] }
+	}
 	Customer.find(query)
 		.populate({
 			path: 'postedBy',
@@ -216,6 +234,60 @@ customerController.archiveCustomer = (req, res) => {
 	}
 }
 
+/** Modifie le status
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+customerController.attributionUser = (req, res) => {
+	const { attributions } = req.body
+	const idCustomer = req.params.idCustomer
+
+	if (!idCustomer || attributions == undefined) {
+		return res.status(422).json({
+			success: false,
+			message: `Une erreur s'est produite, le server n'a pas eu suffisament d'information pour enregistrer votre requête.`
+		})
+	}
+
+	const data = {
+		attributions: attributions ? attributions : []
+	}
+
+	try {
+		let u = []
+		Customer.findOneAndUpdate({ _id: idCustomer }, { $set: data }, { new: true })
+			.then(async updatedData => {
+				//récupère la liste des utilisateurs pour l'envoie de courriel
+				const User = mongoose.model('User')
+				await User.find({ _id: { $in: data.attributions }, status: statusUser.ACTIVE })
+					.select(['email', 'name'])
+					.then(users => {
+						u = users
+						if (users.length > 0) {
+							customerEmail.attributionsEmail(users, updatedData)
+						}
+					})
+				return res.json({
+					success: true,
+					data: {
+						attributions: data.attributions,
+						users: u
+					},
+					message: `Les utilisateurs ont été correctement attribué.`
+				})
+			})
+			.catch(err => {
+				if (!mongoose.isValidObjectId(idCustomer)) {
+					return res.status(404).json({ success: false, error: err, message: "Cette page n'existe pas!" })
+				}
+				return res.status(500).json({ success: false, errors: err, message: "Une erreur s'est produite" })
+			})
+	} catch (err) {
+		return res.status(500).json({ success: false, errors: err, message: 'Un problème est survenu' })
+	}
+}
+
 /**Suprime un client selon un ID
  *
  * @param {*} req
@@ -372,9 +444,11 @@ customerController.exportCustomer = async (req, res) => {
  * @param {*} res
  */
 customerController.importCustomer = async (req, res) => {
-	const { refNumber, name, phone, email } = req.body
+	const { refNumber, name } = req.body
 
-	if (!name || !phone || !email) {
+	const phone = req.body['phone.phone']
+
+	if (!refNumber || !name || !phone) {
 		return res.json({ success: false, message: 'Ne contenait pas tous les champs prérequis' })
 	}
 	try {
@@ -405,7 +479,8 @@ customerController.importCustomer = async (req, res) => {
 						})
 					})
 			} else {
-				//Ajout du contact
+				//Ajout du Customer
+				const data = { ...req.body }
 
 				const createCustomer = new Customer(data)
 				createCustomer.save(function (err, savedData) {

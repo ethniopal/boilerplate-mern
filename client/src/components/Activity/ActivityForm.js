@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import DatePicker from 'react-datepicker'
-import Axios from 'axios'
 import 'react-datepicker/dist/react-datepicker.css'
 
 // material form components
@@ -17,8 +16,6 @@ import ReactHookFormSelect from '../Forms/element/ReactHookFormSelect'
 
 import { isEmpty } from 'lodash'
 import { useForm } from 'react-hook-form'
-
-const token = localStorage.getItem('jwt')
 
 const ActivityForm = ({
 	customer,

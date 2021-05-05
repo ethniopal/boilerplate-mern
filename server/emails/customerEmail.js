@@ -39,13 +39,28 @@ customerEmail.newCustomer = (to, data) => {
 	sendMail(msg)
 }
 
+customerEmail.attributionsEmail = (to, data) => {
+	msg = {
+		from: settingEmail.from,
+		to: to.map(item => item.email),
+		subject: `[CRM] Client Attribué`,
+		html: `Bonjour, <br>
+		Vous recevez ce courriel car ce client "<b>${data.name}</b>" vous a été attribué dans le CRM. <br>
+		Vous pouvez consulter ce client en affichant dans la liste des clients les filtres supplémentaire.
+		${settingEmail.signature}`
+	}
+
+	msg.text = striptags(msg.html)
+	sendMail(msg)
+}
+
 customerEmail.archiveCustomer = (to, data) => {
 	msg = {
 		from: settingEmail.from,
 		to: to.map(item => item.email),
 		subject: `[CRM] Client archivé`,
 		html: `Bonjour, <br>
-		Vous recevez ce courriel car ce client "<b>${updatedData.name}</b>" a été archivé dans le CRM. <br>
+		Vous recevez ce courriel car ce client "<b>${data.name}</b>" a été archivé dans le CRM. <br>
 		Vous pouvez consulter ce client en affichant dans la liste des clients les filtres supplémentaire et cochez la case archive.
 		${settingEmail.signature}`
 	}

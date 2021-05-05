@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+// import { Link } from 'react-router-dom'
 import PermIdentityIcon from '@material-ui/icons/PermIdentity'
-import DeleteSweepIcon from '@material-ui/icons/DeleteSweep'
+// import DeleteSweepIcon from '@material-ui/icons/DeleteSweep'
 import NotInterestedIcon from '@material-ui/icons/NotInterested'
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline'
 import LockIcon from '@material-ui/icons/Lock'
@@ -22,10 +22,7 @@ import { haveAccess, userPermission, userStatus } from '../../variables/user.js'
 import FormPassword from './FormPassword.js'
 import UserForm from './FormUser'
 
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
-
-// import { Draggable } from 'react-data-grid-addons'
-// const DraggableContainer = Draggable.Container
+const { ADMIN } = userPermission
 
 const { REACT_APP_API_URL } = process.env
 const token = localStorage.getItem('jwt')
@@ -398,15 +395,6 @@ function DataGrid() {
 			showClear
 		/>
 	)
-
-	const rightToolbarTemplate = () => {
-		return (
-			<React.Fragment>
-				{/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Import" chooseLabel="Import" className="p-mr-2 p-d-inline-block" /> */}
-				<Button label="Export" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
-			</React.Fragment>
-		)
-	}
 
 	const defaultTableProperty = {
 		reorderableColumns: true,

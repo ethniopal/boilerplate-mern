@@ -92,17 +92,12 @@ const adminRoutes = [
 		exact: true
 	},
 	{
-		path: '/admin/submission/update/:id',
-		component: UserProfile,
+		path: '/admin/submission/:id',
+		component: SubmissionAdd,
 		name: 'Soumission',
 		exact: false
 	},
-	{
-		path: '/admin/submission/view/:id',
-		component: UserProfile,
-		name: 'Client',
-		exact: false
-	},
+
 	{
 		path: '/admin/notifications',
 		component: NotificationsPage,

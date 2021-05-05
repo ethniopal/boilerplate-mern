@@ -15,9 +15,13 @@ const ImportCSVContact = () => {
 		try {
 			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/import/contacts`, {
 				signal: abortController.signal,
-				headers: { Authorization: `Bearer ${token}` },
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: 'application/json',
+					'Content-Type': 'application/json'
+				},
 				method: 'put',
-				data: row
+				body: JSON.stringify(row)
 			})
 			const data = await response.json()
 
@@ -25,7 +29,7 @@ const ImportCSVContact = () => {
 				if (data.action === 'created') {
 					setCountNew(prev => prev + 1)
 				}
-				if (data.action === 'update') {
+				if (data.action === 'updated') {
 					setCountUpdated(prev => prev + 1)
 				}
 				setCountSuccessfull(prev => prev + 1)
@@ -43,12 +47,7 @@ const ImportCSVContact = () => {
 	const importedField = [
 		{
 			name: 'refNumber',
-			label: 'REF',
-			optional: false
-		},
-		{
-			name: 'company',
-			label: 'Companie',
+			label: 'REF Entreprise',
 			optional: false
 		},
 		{
@@ -123,11 +122,12 @@ const ImportCSVContact = () => {
 	return (
 		<>
 			<CustomerBreadcrumbs lastOption="Importation des contacts" />
+
+			<ImportCSV importedField={importedField} updateDB={updateDB} nextPageUrl={nextPageUrl} />
 			<p>Transfert ajouté : {countNew}</p>
 			<p>Transfert mis à jour : {countUpdated}</p>
 			<p>Transfert total réussi : {countSuccessfull}</p>
 			<p>Transfert Échoué: {countFail}</p>
-			<ImportCSV importedField={importedField} updateDB={updateDB} nextPageUrl={nextPageUrl} />
 		</>
 	)
 }

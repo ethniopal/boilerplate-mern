@@ -6,6 +6,7 @@ routes.constRoutes = require('./contact')
 routes.activiteRoutes = require('./activite')
 routes.attachmentRoutes = require('./attachment')
 routes.noteRoutes = require('./note')
+routes.submissionRoutes = require('./submission')
 
 // app.use(require('./survey'))
 // app.use(require('./submissions'))

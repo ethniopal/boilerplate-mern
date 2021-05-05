@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Axios from 'axios'
 
-import { Link } from 'react-router-dom'
-import PermIdentityIcon from '@material-ui/icons/PermIdentity'
 import EditIcon from '@material-ui/icons/Edit'
 
 import DeleteSweepIcon from '@material-ui/icons/DeleteSweep'
@@ -33,7 +31,7 @@ import { Dialog } from 'primereact/dialog'
 import ActivityForm from './ActivityForm'
 
 import { haveAccess, userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR } = userPermission
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
@@ -58,7 +56,7 @@ function DataGrid({ ...props }) {
 	const [first, setFirst] = useState(0)
 	const [selectedType, setSelectedType] = useState(null)
 	const [selectedResponse, setSelectedResponse] = useState(null)
-	const [selectedNegatif, setSelectedNegatif] = useState(null)
+	// const [selectedNegatif, setSelectedNegatif] = useState(null)
 	const [selectedData, setSelectedData] = useState(null)
 	const [activity, setActivity] = useState(null)
 	const [deleteActivityDialog, setDeleteActivityDialog] = useState(false)
@@ -206,7 +204,7 @@ function DataGrid({ ...props }) {
 
 	const types = ['Un appel', 'Un courriel', 'Un rendez-vous', 'Une vidéo-conférence']
 
-	const negatifs = ['Tous', 'Négatif seulement', 'Positif seulement']
+	// const negatifs = ['Tous', 'Négatif seulement', 'Positif seulement']
 
 	const exportCSV = selectionOnly => {
 		dt.current.exportCSV({ selectionOnly })
@@ -246,13 +244,13 @@ function DataGrid({ ...props }) {
 		)
 	}
 
-	const negatifBodyTemplate = rowData => {
-		return (
-			<React.Fragment>
-				<span className={`activity-badge isNegatif-${rowData.isNegatif}`}>{rowData.isNegatif}</span>
-			</React.Fragment>
-		)
-	}
+	// const negatifBodyTemplate = rowData => {
+	// 	return (
+	// 		<React.Fragment>
+	// 			<span className={`activity-badge isNegatif-${rowData.isNegatif}`}>{rowData.isNegatif}</span>
+	// 		</React.Fragment>
+	// 	)
+	// }
 
 	const typeBodyTemplate = rowData => {
 		return (
@@ -275,10 +273,10 @@ function DataGrid({ ...props }) {
 		setSelectedType(e.value)
 	}
 
-	const onNegatifChange = e => {
-		dt.current.filter(e.value, 'isNegatif', 'equals')
-		setSelectedNegatif(e.value)
-	}
+	// const onNegatifChange = e => {
+	// 	dt.current.filter(e.value, 'isNegatif', 'equals')
+	// 	setSelectedNegatif(e.value)
+	// }
 
 	//FILTER ITEM TEMPLATE
 	const typeItemTemplate = option => {
@@ -293,9 +291,9 @@ function DataGrid({ ...props }) {
 		return <>{formatDate(rowData.date)}</>
 	}
 
-	const negatifItemTemplate = option => {
-		return <span className={`activity-badge isNegatif-${option}`}>{option}</span>
-	}
+	// const negatifItemTemplate = option => {
+	// 	return <span className={`activity-badge isNegatif-${option}`}>{option}</span>
+	// }
 
 	const actionBodyTemplate = rowData => {
 		const userAccess = localStorage.getItem('user') === rowData?.postedBy?._id
@@ -355,26 +353,17 @@ function DataGrid({ ...props }) {
 		/>
 	)
 
-	const negatifFilter = (
-		<Dropdown
-			value={selectedNegatif}
-			options={negatifs}
-			onChange={onNegatifChange}
-			itemTemplate={negatifItemTemplate}
-			placeholder="Positif et Négatif"
-			className="p-column-filter"
-			showClear
-		/>
-	)
-
-	const rightToolbarTemplate = () => {
-		return (
-			<React.Fragment>
-				{/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Import" chooseLabel="Import" className="p-mr-2 p-d-inline-block" /> */}
-				<Button label="Export" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
-			</React.Fragment>
-		)
-	}
+	// const negatifFilter = (
+	// 	<Dropdown
+	// 		value={selectedNegatif}
+	// 		options={negatifs}
+	// 		onChange={onNegatifChange}
+	// 		itemTemplate={negatifItemTemplate}
+	// 		placeholder="Positif et Négatif"
+	// 		className="p-column-filter"
+	// 		showClear
+	// 	/>
+	// )
 
 	const defaultTableProperty = {
 		reorderableColumns: true,

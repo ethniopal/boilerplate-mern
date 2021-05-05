@@ -1,5 +1,4 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 // @material-ui/core components
 import { makeStyles } from '@material-ui/core/styles'
 
@@ -7,9 +6,7 @@ import Card from '../../components/Card/Card.js'
 import CardHeader from '../../components/Card/CardHeader.js'
 import CardBody from '../../components/Card/CardBody.js'
 
-import Button from '../../components/CustomButtons/Button.js'
-
-import SubmissionDataList from '../../components/Submission/SubmissionDataList'
+import DatagridSubmission from '../../components/Submission/DatagridSubmission'
 
 //css
 const styles = {
@@ -44,7 +41,7 @@ export default function SubmissionList() {
 					</p>
 				</CardHeader>
 				<CardBody>
-					<SubmissionDataList />
+					<DatagridSubmission />
 				</CardBody>
 			</Card>
 		</div>

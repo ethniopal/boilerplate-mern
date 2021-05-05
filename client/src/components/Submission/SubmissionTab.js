@@ -7,7 +7,8 @@ import Card from 'components/Card/Card.js'
 import CardHeader from 'components/Card/CardHeader.js'
 import CardBody from 'components/Card/CardBody.js'
 
-import SubmissionDataList from './SubmissionDataList'
+// import SubmissionDataList from './SubmissionDataList'
+import DatagridSubmission from './DatagridSubmission'
 
 import Button from 'components/CustomButtons/Button.js'
 
@@ -49,12 +50,6 @@ const SubmissionTab = ({ customer, handleOpenNotification, ...props }) => {
 		setContact(null)
 
 		setOpen(true)
-	}
-
-	const handleClose = () => {
-		props.history.push(`/admin/customers/${customerId}/${option}`)
-		setContact(null)
-		setOpen(false)
 	}
 
 	useEffect(() => {
@@ -118,7 +113,7 @@ const SubmissionTab = ({ customer, handleOpenNotification, ...props }) => {
 			<CardBody>
 				<div className="row">
 					<div className="col-lg-12">
-						<SubmissionDataList customer={customer} />
+						<DatagridSubmission {...props} />
 					</div>
 				</div>
 			</CardBody>

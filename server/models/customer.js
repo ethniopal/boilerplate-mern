@@ -88,10 +88,8 @@ const customerSchema = new mongoose.Schema(
 
 		attributions: [
 			{
-				attribution: {
-					type: ObjectID,
-					ref: 'User'
-				}
+				type: ObjectID,
+				ref: 'User'
 			}
 		],
 		postedBy: {

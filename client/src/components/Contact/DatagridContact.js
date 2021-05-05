@@ -18,7 +18,7 @@ import { Dialog } from 'primereact/dialog'
 import ContactForm from './ContactForm'
 
 import { haveAccess, userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR, SELLER, DISPATCHER } = userPermission
 
 const token = localStorage.getItem('jwt')
 
@@ -231,7 +231,7 @@ function DataGrid({ ...props }) {
 		filter: true,
 		exportable: true,
 		reorderable: true,
-		headerStyle: { minWidth: '160px' }
+		headerStyle: { width: '200px' }
 	}
 
 	const defaultColumns = [
@@ -324,6 +324,7 @@ function DataGrid({ ...props }) {
 				ref={dt}
 				value={contacts}
 				paginator
+				scrollable
 				paginatorTemplate="PrevPageLink CurrentPageReport NextPageLink LastPageLink"
 				rows={20}
 				first={first}

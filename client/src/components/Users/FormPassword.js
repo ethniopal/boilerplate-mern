@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react'
 // @material-ui/core components
-import { makeStyles } from '@material-ui/core/styles'
 
 // core components
 import { TextField } from '@material-ui/core'
@@ -8,31 +7,7 @@ import { Fingerprint as GeneratedPasswordIcon } from '@material-ui/icons'
 
 import Button from 'components/CustomButtons/Button.js'
 
-import { useForm } from 'react-hook-form'
-import { regexEmail } from 'variables/regex'
 import { generatePassword } from '../../variables/user'
-
-//css
-const styles = {
-	cardCategoryWhite: {
-		color: 'rgba(255,255,255,.62)',
-		margin: '0',
-		fontSize: '14px',
-		marginTop: '0',
-		marginBottom: '0'
-	},
-	cardTitleWhite: {
-		color: '#FFFFFF',
-		marginTop: '0px',
-		minHeight: 'auto',
-		fontWeight: '300',
-		fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
-		marginBottom: '3px',
-		textDecoration: 'none'
-	}
-}
-
-const useStyles = makeStyles(styles)
 
 export default function UserProfile({ updatePassword }) {
 	const passwordRef = useRef(null)
@@ -78,7 +53,6 @@ export default function UserProfile({ updatePassword }) {
 		}
 	}
 
-	const classes = useStyles()
 	return (
 		<form onSubmit={e => handleSubmit(e)} className="outer-spacing">
 			<div className="row">
@@ -93,7 +67,8 @@ export default function UserProfile({ updatePassword }) {
 							Générer un mot de passe
 						</Button>
 						<p style={{ lineHeight: '1.2', fontSize: '1rem' }}>
-							Veuillez vous assurez que vous avez une copie du mot de passe avant d'enregistrer. Taille minimum du mot de passe de 10 caractères
+							Veuillez vous assurez que vous avez une copie du mot de passe avant d'enregistrer. Taille
+							minimum du mot de passe de 10 caractères
 						</p>
 					</div>
 				</div>

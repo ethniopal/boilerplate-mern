@@ -98,6 +98,7 @@ const CustomersForm = () => {
 	if (isSubmitSuccessful) {
 		console.log('succes')
 	}
+	console.log('test')
 
 	const classes = useStyles()
 	return (

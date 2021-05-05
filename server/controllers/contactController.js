@@ -312,7 +312,7 @@ contactController.exportContacts = async (req, res) => {
  * @param {*} res
  */
 contactController.importContacts = async (req, res) => {
-	const { refNumber, company: companyName, phone, email } = req.body
+	const { refNumber, phone, email } = req.body
 
 	try {
 		if (req.body.refNumber) {
@@ -348,8 +348,6 @@ contactController.importContacts = async (req, res) => {
 							})
 						})
 				} else {
-					//Ajout du contact
-
 					const createContact = new Contact(data)
 					createContact.save(function (err, savedData) {
 						if (err) {

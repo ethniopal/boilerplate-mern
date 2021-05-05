@@ -2,13 +2,13 @@ import React, { useState, useRef } from 'react'
 // import { Redirect } from 'react-router-dom'
 import Axios from 'axios'
 import { makeStyles } from '@material-ui/core/styles'
-import Button from 'components/CustomButtons/Button.js'
+import Button from '../CustomButtons/Button.js'
 //card
-import Card from 'components/Card/Card.js'
-import CardHeader from 'components/Card/CardHeader.js'
-import CardBody from 'components/Card/CardBody.js'
-import CardFooter from 'components/Card/CardFooter.js'
-import AddresCompany from 'components/Forms/AddressPartialForm'
+import Card from '../Card/Card.js'
+import CardHeader from '../Card/CardHeader.js'
+import CardBody from '../Card/CardBody.js'
+import CardFooter from '../Card/CardFooter.js'
+import AddresCompany from '../Forms/AddressPartialForm'
 import { Toast } from 'primereact/toast'
 //phone component
 // import PhoneInput from 'react-phone-input-2'
@@ -23,8 +23,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { isEmpty } from 'lodash'
 import { regexEmail, regexUrl } from '../../variables/regex'
 
-import faker from 'faker/locale/fr_CA'
-faker.locale = 'fr_CA'
+// import faker from 'faker/locale/fr_CA'
+// faker.locale = 'fr_CA'
 //css
 const styles = {
 	cardCategoryWhite: {

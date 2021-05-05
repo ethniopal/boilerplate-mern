@@ -16,9 +16,9 @@ import EditIcon from '@material-ui/icons/Edit'
 
 import { formatDate } from '../../utils/utils'
 import { haveAccess, userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR } = userPermission
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles(() => ({
 	listItemText: {
 		maxWidth: '75ch'
 	},

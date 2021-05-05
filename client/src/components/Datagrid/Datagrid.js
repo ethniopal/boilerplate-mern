@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import GroupWorkIcon from '@material-ui/icons/GroupWork'
 import PermIdentityIcon from '@material-ui/icons/PermIdentity'
 import DeleteSweepIcon from '@material-ui/icons/DeleteSweep'
 import FilterListIcon from '@material-ui/icons/FilterList'
@@ -14,38 +15,71 @@ import { flattenObject } from '../../utils/utils'
 
 import { Toast } from 'primereact/toast'
 import { Dialog } from 'primereact/dialog'
+import AttributionUser from './AttributionUser'
 
+import { customerStatuses } from '../../variables/client.js'
 import { haveAccess, userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR, SELLER, DISPATCHER } = userPermission
 // import { Draggable } from 'react-data-grid-addons'
 // const DraggableContainer = Draggable.Container
 
 const { REACT_APP_API_URL } = process.env
 const token = localStorage.getItem('jwt')
 
-const PhoneFormatters = ({ row }) => {
-	let phoneNumber = ''
-	if (row.phone.phone) {
-		phoneNumber = row.phone.phone
-		if (row.phone.ext) {
-			phoneNumber += `, poste ${row.phone.ext}`
-		}
-	} else if (row.phone.mobile) {
-		phoneNumber = row.phone.mobile
-	}
-
-	return phoneNumber
-}
-
 function DataGrid() {
+	const defaultQuery = {
+		archive: null,
+		noActivity: null,
+		noSubmission: null,
+		noContact: null,
+		withAttribution: null,
+		noAttribution: null,
+		myAttribution: null
+	}
 	const [customers, setCustomers] = useState([])
 	const [first, setFirst] = useState(0)
 	const [selectedStatus, setSelectedStatus] = useState(null)
 	const [selectedData, setSelectedData] = useState(null)
 	const [customer, setCustomer] = useState(null)
 	const [deleteCustomerDialog, setDeleteCustomerDialog] = useState(false)
+	const [attributionCustomerDialog, setAttributionCustomerDialog] = useState(false)
 	const [toggleFilter, setToggleFilter] = useState(null)
-	const [filter, setFilter] = useState({ archive: false, noActivity: false, noSubmission: false, noContact: false })
+	const [filter, setFilter] = useState(defaultQuery)
+
+	const [leftNotAttribued, setLeftNotAttribued] = useState([])
+	const [rightAttribued, setRightAttribued] = useState([])
+
+	const saveAttributionCustomer = async () => {
+		const controller = new AbortController()
+		const { signal } = controller
+
+		const postData = {
+			attributions: rightAttribued.map(item => item._id)
+		}
+
+		const res = await fetch(`${REACT_APP_API_URL}/api/customer/${customer._id}/attribution`, {
+			method: 'PATCH',
+			body: JSON.stringify(postData),
+			...signal,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/json',
+				'Content-type': 'application/json; charset=UTF-8'
+			}
+		})
+		const data = await res.json()
+
+		if (data.success) {
+			setCustomers(customers.map(item => (item._id === customer._id ? { ...customer, ...postData } : item)))
+			setAttributionCustomerDialog(false)
+			setCustomer(null)
+			setLeftNotAttribued([])
+			setRightAttribued([])
+			toast.current.show({ severity: 'success', summary: 'Réussi', detail: data.message, life: 3000 })
+		} else {
+			toast.current.show({ severity: 'error', summary: 'Échec', detail: data.message, life: 3000 })
+		}
+	}
 
 	const deleteCustomer = async () => {
 		const controller = new AbortController()
@@ -109,10 +143,38 @@ function DataGrid() {
 		setDeleteCustomerDialog(false)
 	}
 
+	const hideAttributionCustomerDialog = () => {
+		setAttributionCustomerDialog(false)
+		setLeftNotAttribued([])
+		setRightAttribued([])
+	}
+
 	const confirmDeleteCustomer = customer => {
 		setCustomer(customer)
 		setDeleteCustomerDialog(true)
 	}
+
+	const confirmAttributionCustomer = customer => {
+		setCustomer(customer)
+		setAttributionCustomerDialog(true)
+	}
+
+	const attributionCustomerDialogFooter = (
+		<React.Fragment>
+			<Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideAttributionCustomerDialog}>
+				Non
+			</Button>
+			<Button
+				label="Yes"
+				icon="pi pi-check"
+				className="p-button-text"
+				onClick={saveAttributionCustomer}
+				style={{ color: 'orange' }}
+			>
+				Mettre à jour les attributions
+			</Button>
+		</React.Fragment>
+	)
 
 	const deleteCustomerDialogFooter = (
 		<React.Fragment>
@@ -143,7 +205,7 @@ function DataGrid() {
 	const dt = useRef(null)
 	const toast = useRef(null)
 
-	const statuses = ['Prospect', 'Partenaire', 'Revendeur', 'Fournisseur', 'Transporteur', 'Autre']
+	const statuses = customerStatuses
 
 	const exportCSV = selectionOnly => {
 		dt.current.exportCSV({ selectionOnly })
@@ -202,13 +264,22 @@ function DataGrid() {
 						<PermIdentityIcon />
 					</Button>
 				</Link>
+
 				{haveAccess([ADMIN, COLLABORATOR]) && (
-					<Button
-						className="p-button-rounded p-button-warning"
-						onClick={() => confirmDeleteCustomer(rowData)}
-					>
-						<DeleteSweepIcon />
-					</Button>
+					<>
+						<Button
+							className="p-button-rounded p-button-info"
+							onClick={() => confirmAttributionCustomer(rowData)}
+						>
+							<GroupWorkIcon />
+						</Button>
+						<Button
+							className="p-button-rounded p-button-warning"
+							onClick={() => confirmDeleteCustomer(rowData)}
+						>
+							<DeleteSweepIcon />
+						</Button>
+					</>
 				)}
 			</>
 		)
@@ -226,15 +297,6 @@ function DataGrid() {
 		/>
 	)
 
-	const rightToolbarTemplate = () => {
-		return (
-			<React.Fragment>
-				{/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Import" chooseLabel="Import" className="p-mr-2 p-d-inline-block" /> */}
-				<Button label="Export" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
-			</React.Fragment>
-		)
-	}
-
 	const defaultTableProperty = {
 		reorderableColumns: true,
 		sortMode: 'multiple',
@@ -248,7 +310,7 @@ function DataGrid() {
 		filter: true,
 		exportable: true,
 		reorderable: true,
-		headerStyle: { minWidth: '160px' }
+		headerStyle: { width: '200px' }
 	}
 
 	const defaultColumns = [
@@ -326,9 +388,7 @@ function DataGrid() {
 	const handleToggleFilter = () => {
 		setToggleFilter(prev => {
 			if (prev) {
-				console.log('supprime les filtres')
-
-				setFilter({ archive: false, noActivity: false, noSubmission: false, noContact: false })
+				setFilter(defaultQuery)
 			}
 			return !prev
 		})
@@ -410,6 +470,37 @@ function DataGrid() {
 							label="Clients archivés"
 						/>
 					</FormControl>
+					<FormControl style={{ width: '100%' }} className="form-group">
+						<FormControlLabel
+							control={
+								<Checkbox
+									checked={filter.noAttribution}
+									onChange={e => {
+										handleFilterCheckbox(e)
+									}}
+									name="noAttribution"
+								/>
+							}
+							label="Clients sans attribution"
+						/>
+					</FormControl>
+
+					{haveAccess([ADMIN, COLLABORATOR]) && (
+						<FormControl style={{ width: '100%' }} className="form-group">
+							<FormControlLabel
+								control={
+									<Checkbox
+										checked={filter.myAttribution}
+										onChange={e => {
+											handleFilterCheckbox(e)
+										}}
+										name="myAttribution"
+									/>
+								}
+								label="Mes attributions"
+							/>
+						</FormControl>
+					)}
 				</div>
 			)}
 			{haveAccess([ADMIN, COLLABORATOR, SELLER, DISPATCHER]) && (
@@ -441,6 +532,7 @@ function DataGrid() {
 				ref={dt}
 				value={customers}
 				paginator
+				scrollable
 				paginatorTemplate="PrevPageLink CurrentPageReport NextPageLink LastPageLink"
 				rows={20}
 				first={first}
@@ -480,6 +572,33 @@ function DataGrid() {
 							notes, soumissions et documents associés à celui-ci. Tandis que <b>l'archive</b> désactivera
 							l'entreprise, mais conservera toutes ses informations.
 						</span>
+					)}
+				</div>
+			</Dialog>
+
+			<Dialog
+				visible={attributionCustomerDialog}
+				style={{ width: '750px' }}
+				header="Confirm"
+				modal
+				footer={attributionCustomerDialogFooter}
+				onHide={hideAttributionCustomerDialog}
+			>
+				<div className="confirmation-content">
+					<i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
+					{customer && (
+						<>
+							<span>
+								Sélectionner les utilisateurs qui seront attribué à ce client "{customer.name}":
+							</span>
+							<AttributionUser
+								customer={customer}
+								left={leftNotAttribued}
+								setLeft={setLeftNotAttribued}
+								right={rightAttribued}
+								setRight={setRightAttribued}
+							/>
+						</>
 					)}
 				</div>
 			</Dialog>

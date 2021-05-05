@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form'
 import { regexEmail } from '../../variables/regex'
 import ReactHookFormSelect from '../Forms/element/ReactHookFormSelect'
 import { userPermission, userStatus, haveAccess, generatePassword } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN } = userPermission
 
 // import faker from 'faker/locale/fr_CA'
 // faker.locale = 'fr_CA'

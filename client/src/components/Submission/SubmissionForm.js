@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import Axios from 'axios'
 
 import { makeStyles } from '@material-ui/core/styles'
 import Button from 'components/CustomButtons/Button.js'
@@ -7,6 +8,16 @@ import Card from 'components/Card/Card.js'
 import CardHeader from 'components/Card/CardHeader.js'
 import CardBody from 'components/Card/CardBody.js'
 import CardFooter from 'components/Card/CardFooter.js'
+import { Toast } from 'primereact/toast'
+import { Alert } from '@material-ui/lab/'
+import {
+	deadlinesTxt,
+	typeTransportTxt,
+	typeMarchandiseTxt,
+	infoTransportTxt,
+	infoRemorqueTxt
+} from '../../variables/submission.js'
+
 // form components
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import {
@@ -15,7 +26,6 @@ import {
 	FormControl,
 	FormControlLabel,
 	MenuItem,
-	Checkbox,
 	FormHelperText,
 	Select,
 	Radio,
@@ -24,8 +34,15 @@ import {
 } from '@material-ui/core'
 
 import AddressPartialForm from './AddressPartial'
+import { useForm, Controller } from 'react-hook-form'
 
+import { regexEmail } from '../../variables/regex'
+import { isEmpty } from 'lodash'
+// import faker from 'faker/locale/fr_CA'
+// faker.locale = 'fr_CA'
 //css
+const token = localStorage.getItem('jwt')
+
 const styles = {
 	card: {
 		marginBottom: '90px'
@@ -46,7 +63,7 @@ const styles = {
 		marginBottom: '3px',
 		textDecoration: 'none'
 	},
-	unit: {
+	unitWeight: {
 		height: '56px',
 		flex: '1 0 auto'
 	},
@@ -56,86 +73,439 @@ const styles = {
 }
 const useStyles = makeStyles(styles)
 
-const SubmissionForm = () => {
+const SubmissionForm = props => {
 	const classes = useStyles()
+	const toast = useRef(null)
 
-	const [client, setClient] = React.useState('')
+	const [isLoaded, setIsLoaded] = React.useState(false)
+	const [submission, setSubmission] = React.useState(null)
+	const [customers, setCustomers] = React.useState([])
+	const [contacts, setContacts] = React.useState([])
+	const [client, setClient] = React.useState(null)
 	const [contact, setContact] = React.useState('')
-	const [isNewCustomer, setIsNewCustomer] = React.useState(true)
+	const [isNewCustomer, setIsNewCustomer] = React.useState(false)
 
-	const [fields, setFields] = useState({
-		title: '',
-		description: ''
-	})
-
-	const [validations, setValidations] = useState({
-		title: {
-			rules: { required: true },
-			error: false
+	const [defaultValues, setDefaultValues] = useState({
+		typeTransport: submission?.typeTransport || typeTransportTxt.FLT,
+		customer: submission?.customer || '',
+		contact: submission?.contact || '',
+		address: {
+			source: {
+				address: submission?.address?.source?.address || '',
+				city: submission?.address?.source?.city || '',
+				province: submission?.address?.source?.province || '',
+				country: submission?.address?.source?.country || '',
+				zip: submission?.address?.source?.zip || '',
+				date: submission?.address?.source?.date || ''
+			},
+			destination: {
+				address: submission?.address?.destination?.address || '',
+				city: submission?.address?.destination?.city || '',
+				province: submission?.address?.destination?.province || '',
+				country: submission?.address?.destination?.country || '',
+				zip: submission?.address?.destination?.zip || '',
+				date: submission?.address?.destination?.date || ''
+			}
 		},
-		description: {
-			rules: { required: true },
-			error: false
-		}
+		deadlinesState: submission?.deadlinesState || deadlinesTxt.REGULIER,
+		requestedService: {
+			requestedService: submission?.requestedService?.requestedService || '',
+			typeService: submission?.requestedService?.typeService || '',
+			typeApplication: submission?.requestedService?.typeApplication || '',
+			incoterms: submission?.requestedService?.incoterms || '',
+			typeShipment: submission?.requestedService?.typeShipment || '',
+			typeEquipment: submission?.requestedService?.typeEquipment || ''
+		},
+		goods: {
+			transport: submission?.goods?.transport || typeTransportTxt.FLT,
+			commodity: submission?.goods?.commodity || typeMarchandiseTxt.PALETTE,
+			quantity: submission?.goods?.quantity || '',
+			totalWeight: {
+				weight: submission?.goods?.totalWeight?.weight || '',
+				unit: submission?.goods?.totalWeight?.unit || 'lb'
+			},
+			dimension: {
+				full: submission?.goods?.dimension?.full || '',
+				lenght: submission?.goods?.dimension?.lenght || '',
+				width: submission?.goods?.dimension?.width || '',
+				height: submission?.goods?.dimension?.height || '',
+				unit: submission?.goods?.dimension?.unit || 'Pied'
+			},
+			oversized: submission?.goods?.oversized || false,
+			hazmat: {
+				isHasmat: submission?.goods?.hazmat?.isHasmat || false,
+				category: submission?.goods?.hazmat?.category || '',
+				un: submission?.goods?.hazmat?.un || '',
+				quantity: submission?.goods?.hazmat?.quantity || '',
+				weight: {
+					weight: submission?.goods?.hazmat?.weight?.weight || '',
+					unit: submission?.goods?.hazmat?.weight?.unit || ''
+				}
+			},
+			//------- START international
+			international: {
+				overlaid: submission?.goods?.international?.overlaid || false,
+				tailgateTruck: submission?.goods?.international?.tailgateTruck || false,
+				loadingDock: submission?.goods?.international?.loadingDock || false,
+				natureGoods: submission?.goods?.international?.natureGoods || '',
+				cargoInsurance: submission?.goods?.international?.cargoInsurance || false,
+				hazardousMaterial: submission?.goods?.international?.hazardousMaterial || false,
+				category: submission?.goods?.international?.category || '',
+				totalValue: submission?.goods?.international?.totalValue || ''
+			},
+			details: submission?.goods?.details || ''
+		},
+		equipment: {
+			transport: submission?.equipment?.transport || infoTransportTxt.GENERAL,
+			trailer: submission?.equipment?.trailer || infoRemorqueTxt.DRYBOX,
+			toile: submission?.equipment?.toile || false,
+			details: submission?.equipment?.details || ''
+		},
+		status: submission?.status || ''
 	})
 
-	const isValid = (name, value) => {
-		const { rules, error } = validations[name]
-		if (!rules) return true
+	const [serverError, setServerError] = useState('')
 
-		Object.keys(rules).map(rule => {})
-	}
+	//gestion des erreurs
+	const validations = {
+		companyEmail: {
+			pattern: {
+				value: regexEmail,
+				message: 'Vous devez avoir un courriel valide'
+			}
+		},
+		sourceAddress: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
+		},
+		sourceCity: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
+		},
+		sourceProvince: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
+		},
 
-	const handleChangeField = e => {
-		const { name, value } = e.target
-		switch (name) {
-			default:
-				setFields({ ...fields, [name]: value })
+		destinationAddress: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
+		},
+		destinationCity: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
+		},
+		destinationProvince: {
+			required: true,
+			message: 'Vous devez remplir ce champs'
 		}
 	}
 
-	const isNewCustomerHandleChange = () => {
-		setIsNewCustomer(!isNewCustomer)
+	const { register, handleSubmit, control } = useForm({ defaultValues, mode: 'onTouched' })
+
+	const onSubmit = async data => {
+		let msgError = []
+		setServerError('')
+		if (!client) msgError.push('Vous devez sélectionner un client')
+		if (!contact)
+			msgError.push(
+				'Vous devez sélectionner un contact, si aucun contact, veuillez le rajouter dans la fiche client'
+			)
+		if (msgError.length > 0) {
+			setServerError(msgError.join('<br />'))
+		}
+
+		const postData = {
+			typeTransport: submission?.typeTransport || typeTransportTxt.FLT,
+			customer: client?._id || null,
+			contact: contact?._id || null,
+			address: {
+				source: {
+					address: data.sourceAddress || '',
+					city: data.sourceCity || '',
+					province: data.sourceProvince || '',
+					country: data.sourceCountry || '',
+					zip: data.sourceZip || '',
+					date: data.sourceDate || ''
+				},
+				destination: {
+					address: data.destinationAddress || '',
+					city: data.destinationCity || '',
+					province: data.destinationProvince || '',
+					country: data.destinationCountry || '',
+					zip: data.destinationZip || '',
+					date: data.destinationDate || ''
+				}
+			},
+			deadlinesState: data?.deadlines || deadlinesTxt.REGULIER,
+			requestedService: {
+				requestedService: data?.requestedService || '',
+				typeService: data?.typeService || '',
+				typeApplication: data?.typeApplication || '',
+				incoterms: data?.incoterms || '',
+				typeShipment: data?.typeShipment || '',
+				typeEquipment: data?.typeEquipment || ''
+			},
+			goods: {
+				transport: data.typeTransport || typeTransportTxt.FLT,
+				commodity: data.commodity || typeMarchandiseTxt.PALETTE,
+				quantity: data.quantity || '',
+				totalWeight: {
+					weight: data.totalWeight || '',
+					unit: data.unitWeight || ''
+				},
+				dimension: {
+					full: data.dimensions || '',
+					unit: data.unitDimension || 'Pied'
+				},
+				oversized: data.oversized === 'true',
+				hazmat: {
+					isHasmat: data.hazmat === 'true',
+					category: data?.hazmatCategory || '',
+					un: data?.hazmatUn || '',
+					quantity: data?.hazmatQuantity || '',
+					weight: {
+						weight: data?.hazmatWeight || '',
+						unit: data?.hazmatWeightUnit || 'lb'
+					}
+				},
+				//------- START international
+				international: {
+					overlaid: data?.overlaid === 'true',
+					tailgateTruck: data?.tailgateTruck === 'true',
+					loadingDock: data?.loadingDock === 'true',
+					natureGoods: data?.natureGoods || '',
+					cargoInsurance: data?.cargoInsurance === 'true',
+					hazardousMaterial: data?.hazardousMaterial === 'true',
+					category: data?.internationalCategory || '',
+					totalValue: data?.internationalTotalValue || ''
+				},
+				details: data.otherDetail || ''
+			},
+			equipment: {
+				transport: data.transport || infoTransportTxt.GENERAL,
+				trailer: data.remorque || infoRemorqueTxt.DRYBOX,
+				toile: data.toiles === 'true',
+				details: data.otherDetailEquipment || ''
+			}
+		}
+
+		//save the datas
+		console.log(submission)
+		try {
+			if (!submission) {
+				console.log('create')
+				await createRequest(postData)
+			} else {
+				console.log('update')
+
+				await updateRequest(postData)
+			}
+		} catch (err) {
+			setServerError(err)
+		}
 	}
 
-	const options = top100Films.map(option => {
-		const firstLetter = option.title[0].toUpperCase()
-		return {
-			firstLetter: /[0-9]/.test(firstLetter) ? '0-9' : firstLetter,
-			...option
+	//create customed
+	const createRequest = async postData => {
+		console.log(process.env.REACT_APP_API_URL)
+		const config = {
+			method: 'post',
+			url: `${process.env.REACT_APP_API_URL}/api/submission`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			},
+			data: postData
 		}
-	})
-	console.log(fields)
+
+		let res = await Axios(config)
+		let { data } = res
+		if (data.success) {
+			setSubmission({ ...postData, _id: data.data._id })
+			toast.current.show({ severity: 'success', summary: 'Réussi', detail: data.message, life: 4000 })
+		} else {
+			toast.current.show({ severity: 'error', summary: 'Échec', detail: data.message, life: 3000 })
+			setServerError(data.message)
+		}
+		// setIsSubmitSuccessful(data.success)
+	}
+
+	const updateRequest = async postData => {
+		const config = {
+			method: 'put',
+			url: `${process.env.REACT_APP_API_URL}/api/submission/${submission._id}`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			},
+			data: postData
+		}
+
+		let res = await Axios(config)
+		let { data } = res
+
+		if (data.success) {
+			toast.current.show({ severity: 'success', summary: 'Réussi', detail: data.message, life: 4000 })
+			setSubmission({ ...postData, _id: data.data._id })
+		} else {
+			toast.current.show({ severity: 'error', summary: 'Échec', detail: data.message, life: 3000 })
+			setServerError(data.message)
+		}
+		// setIsSubmitSuccessful({ success: data.success, message: data.message })
+	}
+
+	useEffect(() => {
+		const controller = new AbortController()
+		const { signal } = controller
+
+		const { REACT_APP_API_URL } = process.env
+		const token = localStorage.getItem('jwt')
+
+		fetch(`${REACT_APP_API_URL}/api/customer`, {
+			...signal,
+			headers: { Authorization: `Bearer ${token}` }
+		})
+			.then(res => res.json())
+			.then(data => {
+				if (data.success) {
+					setCustomers(data.data)
+				}
+			})
+
+		const idSubmission = props?.match?.params?.id
+
+		if (idSubmission) {
+			const controller = new AbortController()
+			const { signal } = controller
+
+			const { REACT_APP_API_URL } = process.env
+			const token = localStorage.getItem('jwt')
+
+			fetch(`${REACT_APP_API_URL}/api/submission/${idSubmission}`, {
+				...signal,
+				headers: { Authorization: `Bearer ${token}` }
+			})
+				.then(res => res.json())
+				.then(data => {
+					if (data.success) {
+						setSubmission(data.data)
+						console.log(data.data.customer)
+						console.log(data.data.contact)
+						setClient(data.data.customer)
+						setContact(data.data.contact)
+
+						setIsLoaded(true)
+						console.log(data.data)
+					}
+				})
+		} else {
+			setIsLoaded(true)
+		}
+
+		return () => controller.abort()
+	}, [])
+
+	useEffect(() => {
+		setDefaultValues()
+	}, [submission])
+
+	useEffect(() => {
+		if (client) {
+			const controller = new AbortController()
+			const { signal } = controller
+
+			const { REACT_APP_API_URL } = process.env
+			const token = localStorage.getItem('jwt')
+
+			fetch(`${REACT_APP_API_URL}/api/customer/${client._id}/contact`, {
+				...signal,
+				headers: { Authorization: `Bearer ${token}` }
+			})
+				.then(res => res.json())
+				.then(data => {
+					if (data.success) {
+						setContacts(data.data)
+					}
+				})
+			return () => controller.abort()
+		}
+	}, [client])
+
+	const customerOptions =
+		customers &&
+		customers.map(option => {
+			const firstLetter = option.name[0].toUpperCase()
+
+			return {
+				firstLetter: /[0-9]/.test(firstLetter) ? '0-9' : firstLetter,
+				...option
+			}
+		})
+
+	const contactOptions =
+		contacts &&
+		contacts.map(option => {
+			const firstLetter = option.name[0].toUpperCase()
+			return {
+				firstLetter: /[0-9]/.test(firstLetter) ? '0-9' : firstLetter,
+				...option
+			}
+		})
 
 	return (
-		<div>
-			<Card className={classes.card}>
-				<CardHeader color="info">
-					<h4>Information sur la companie</h4>
-				</CardHeader>
-				<CardBody>
-					<div className="row">
-						<div className="col-lg-6">
-							<Autocomplete
-								id="customerList"
-								options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
-								groupBy={option => option.firstLetter}
-								getOptionLabel={option => option.title}
-								style={{ width: 300 }}
-								renderInput={params => {
-									setClient(params.inputProps.value)
-									return (
-										<TextField
-											{...params}
-											label="Sélection du client"
-											value={client}
-											variant="outlined"
-										/>
-									)
-								}}
-							/>
+		<>
+			{isLoaded && (
+				<form className="outer-spacing" onSubmit={handleSubmit(onSubmit)}>
+					<Toast ref={toast} />
 
-							<FormControl style={{ width: '100%' }} className="form-group">
+					<div className="form-group">
+						{!isEmpty(serverError) && (
+							<Alert severity="error">
+								<b dangerouslySetInnerHTML={{ __html: serverError }}></b>
+							</Alert>
+						)}
+					</div>
+					<Card className={classes.card}>
+						<CardHeader color="info">
+							<h4>Information sur la companie</h4>
+						</CardHeader>
+						<CardBody>
+							<div className="row">
+								<div className="col-lg-6">
+									<br />
+									{customers && (
+										<Autocomplete
+											id="customerList"
+											options={customerOptions.sort(
+												(a, b) => -b.firstLetter.localeCompare(a.firstLetter)
+											)}
+											onChange={(event, option) => {
+												setClient(option)
+											}}
+											defaultValue={client}
+											groupBy={option => option.firstLetter}
+											getOptionLabel={option => option.name}
+											style={{ width: 300 }}
+											renderInput={params => {
+												return (
+													<TextField
+														{...params}
+														label="Sélection du client"
+														value={client?._id}
+														variant="outlined"
+													/>
+												)
+											}}
+										/>
+									)}
+									{!client && (
+										<p style={{ lineHeight: 1.4, fontSize: '0.8rem' }}>
+											Si le client n'est pas listé, veuillez l'ajouter via le menu Client
+										</p>
+									)}
+
+									{/* <FormControl style={{ width: '100%' }} className="form-group">
 								<FormControlLabel
 									control={
 										<Checkbox
@@ -144,540 +514,601 @@ const SubmissionForm = () => {
 											name="isNewCustomer"
 										/>
 									}
-									label="Le client n'est pas répertorier dans la liste"
+									label="Le client n'est pas répertorier dans la liste?"
 								/>
-							</FormControl>
-						</div>
-						<div className="col-lg-6">
-							{client && (
-								<Autocomplete
-									id="contactList"
-									options={options.sort((a, b) => -b.firstLetter.localeCompare(a.firstLetter))}
-									groupBy={option => option.firstLetter}
-									getOptionLabel={option => option.title}
-									style={{ width: 300 }}
-									renderInput={params => {
-										setContact(params.inputProps.value)
-										return (
-											<TextField
-												{...params}
-												label="Sélection du contact"
-												value={contact}
-												variant="outlined"
-											/>
-										)
-									}}
-								/>
-							)}
-						</div>
-					</div>
-
-					{
-						//affiche seulement si l'option nouveau client est coché
-						isNewCustomer && (
-							<div>
-								<div className="fieldset">
-									<h1>Informations</h1>
-									<div className="row">
-										<div className="col-md-6">
-											<TextField
-												id="companyName"
-												name="companyName"
-												label="Nom de la compagnie"
-												type="text"
-												classes={{ root: 'form-group' }}
-												inputProps={{ maxLength: 100 }}
-												helperText={validations.companyName && validations.companyName.message}
-												error={Boolean(validations.companyName)}
-												fullWidth
-											/>
-										</div>
-										<div className="col-md-6">
-											<TextField
-												id="companyContactName"
-												name="companyContactName"
-												label="Personne ressource"
-												classes={{ root: 'form-group' }}
-												inputProps={{ maxLength: 100 }}
-												helperText={
-													validations.companyContactName &&
-													validations.companyContactName.message
-												}
-												error={Boolean(validations.companyContactName)}
-												fullWidth
-											/>
-										</div>
-
-										<div className="col-md-6">
-											<TextField
-												id="companyPhone"
-												name="companyPhone"
-												label="Téléphone"
-												classes={{ root: 'form-group' }}
-												inputProps={{ maxLength: 100 }}
-												helperText={
-													validations.companyPhone && validations.companyPhone.message
-												}
-												error={Boolean(validations.companyPhone)}
-												fullWidth
-											/>
-										</div>
-										<div className="col-md-6">
-											<TextField
-												id="companyEmail"
-												name="companyEmail"
-												label="Email"
-												classes={{ root: 'form-group' }}
-												inputProps={{ maxLength: 100 }}
-												helperText={
-													validations.companyEmail && validations.companyEmail.message
-												}
-												error={Boolean(validations.companyEmail)}
-												fullWidth
-											/>
-										</div>
-									</div>
+							</FormControl> */}
 								</div>
+								<div className="col-lg-6">
+									<br />
+									{client && contacts.length > 0 && (
+										<Autocomplete
+											id="contactList"
+											options={contactOptions.sort(
+												(a, b) => -b.firstLetter.localeCompare(a.firstLetter)
+											)}
+											onChange={(event, option) => {
+												setContact(option)
+											}}
+											groupBy={option => option.firstLetter}
+											getOptionLabel={option => option.name}
+											style={{ width: 300 }}
+											defaultValue={contact}
+											renderInput={params => {
+												return (
+													<TextField
+														{...params}
+														label="Sélection du contact"
+														value={contact}
+														variant="outlined"
+													/>
+												)
+											}}
+										/>
+									)}
+								</div>
+								{client && (
+									<>
+										<div className="col-lg-6">
+											<br />
+											<strong>Fiche client :</strong> {client.name} <strong>REF :</strong>
+											{client.refNumber}
+											<br />
+											<strong>Adresse:</strong> {client.address.address}, {client.address.city}
+											<br />
+											{client.address.province} {client.address.country} {client.address.zip}
+											<br />
+											<strong>Téléphone:</strong> {client.phone.phone}
+											<br />
+										</div>
+									</>
+								)}
 
-								<AddressPartialForm
-									title="Adresse de la compagnie"
-									type="company"
-									validations={validations}
-								/>
-							</div>
-						)
-					}
-				</CardBody>
-			</Card>
-
-			<Card className={classes.card}>
-				<CardHeader color="info">
-					<h4 className={classes.cardTitleWhite}>Information sur les adresses</h4>
-				</CardHeader>
-				<CardBody>
-					<AddressPartialForm title="Adresse source" type="source" validations={validations} />
-
-					<AddressPartialForm title="Adresse destination" type="destination" validations={validations} />
-					<div className="fieldset">
-						<h1>Deadlines</h1>
-						<FormControl style={{ width: '100%' }} className="form-group">
-							<InputLabel id="dealinesLabel">Dealines</InputLabel>
-							<Select
-								labelId="dealinesLabel"
-								id="dealines"
-								name="dealines"
-								defaultValue="Urgent"
-								// inputRef={register(validations.dealines)}
-								error={Boolean(validations.dealines)}
-								fullWidth
-							>
-								<MenuItem value="Regulier">Regulier</MenuItem>
-								<MenuItem value="Urgent">Urgent</MenuItem>
-							</Select>
-						</FormControl>
-					</div>
-				</CardBody>
-			</Card>
-
-			<Card className={classes.card}>
-				<CardHeader color="info">
-					<h4 className={classes.cardTitleWhite}>Information sur la marchandise</h4>
-				</CardHeader>
-				<CardBody>
-					<div className="fieldset">
-						<div className="row">
-							<div className="col-md-6">
-								<FormControl style={{ width: '100%' }} className="form-group">
-									<InputLabel id="typeTransportLabel">Type de transport</InputLabel>
-									<Select
-										labelId="typeTransportLabel"
-										id="typeTransport"
-										name="typeTransport"
-										defaultValue="FLT"
-										// inputRef={register(validations.dealines)}
-										error={Boolean(validations.dealines)}
-										fullWidth
-									>
-										<MenuItem value="FLT">FLT</MenuItem>
-										<MenuItem value="LTL">LTL</MenuItem>
-									</Select>
-								</FormControl>
+								{contact && (
+									<>
+										<div className="col-lg-6">
+											<br />
+											<strong>Nom du contact :</strong> {contact.name}
+											<br />
+											<strong>Téléphone:</strong> {contact.phone.phone}
+											{contact.phone.ext ? `#${contact.phone.ext}` : ''}
+											<br />
+											<strong>Email:</strong>{' '}
+											<a href={`mailto:${contact.email}`}>{contact.email}</a>
+											<br />
+										</div>
+									</>
+								)}
 							</div>
 
-							<div className="col-md-6">
-								<FormControl style={{ width: '100%' }} className="form-group">
-									<InputLabel id="commodityLabel">Marchandise</InputLabel>
-									<Select
-										labelId="commodityLabel"
-										id="commodity"
-										name="commodity"
-										defaultValue="Palette"
-										// inputRef={register(validations.dealines)}
-										error={Boolean(validations.commodity)}
-										fullWidth
-									>
-										<MenuItem value="Palette">Palette</MenuItem>
-										<MenuItem value="Boîte">Boîte</MenuItem>
-										<MenuItem value="Unité">Unité</MenuItem>
-									</Select>
-								</FormControl>
-							</div>
-
-							<div className="col-md-6">
-								<TextField
-									id="quantity"
-									name="quantity"
-									label="Quantité"
-									classes={{ root: 'form-group' }}
-									inputProps={{ maxLength: 50 }}
-									helperText={validations.quantity && validations.quantity.message}
-									error={Boolean(validations.quantity)}
-									fullWidth
-								/>
-							</div>
-
-							<div className={'col-md-6'} style={{ display: 'flex', alignItems: 'bottom' }}>
-								<TextField
-									id="dimensions"
-									name="dimensions"
-									label="Dimensions"
-									classes={{ root: 'form-group' }}
-									className={classes.dimensions}
-									placeholder="L x W x H"
-									inputProps={{ maxLength: 50 }}
-									helperText={validations.dimensions && validations.dimensions.message}
-									error={Boolean(validations.dimensions)}
-								/>
-								<Select
-									labelId="unitDimension"
-									id="unitDimension"
-									name="unitDimension"
-									defaultValue="Pied"
-									className={classes.unit}
-									// inputRef={register(validations.dealines)}
-									error={Boolean(validations.unit)}
-								>
-									<MenuItem value="Pied">Pied</MenuItem>
-									<MenuItem value="Pouce">Po</MenuItem>
-									<MenuItem value="Cm">CM</MenuItem>
-								</Select>
-							</div>
-
-							<div className={'col-md-6'} style={{ display: 'flex', alignItems: 'bottom' }}>
-								<TextField
-									id="totalWeight"
-									name="totalWeight"
-									label="Poids Total"
-									classes={{ root: 'form-group' }}
-									className={classes.dimensions}
-									placeholder="ex: 75000"
-									inputProps={{ maxLength: 50 }}
-									helperText={validations.dimensions && validations.dimensions.message}
-									error={Boolean(validations.dimensions)}
-								/>
-								<Select
-									labelId="unitWeight"
-									id="unitWeight"
-									name="unitWeight"
-									defaultValue="lb"
-									className={classes.unit}
-									// inputRef={register(validations.dealines)}
-									error={Boolean(validations.unit)}
-								>
-									<MenuItem value="lb">lb</MenuItem>
-									<MenuItem value="kg">kg</MenuItem>
-								</Select>
-							</div>
-
-							<div className={'col-md-6'}>
-								<div style={{ marginTop: '10px' }}>
-									<InputLabel>Oversized</InputLabel>
-									<RadioGroup row defaultValue="Non" aria-label="Oversize">
-										<FormControlLabel value="Oui" control={<Radio />} label="Oui" />
-										<FormControlLabel value="Non" control={<Radio />} label="Non" />
-									</RadioGroup>
+							{
+								//affiche seulement si l'option nouveau client est coché
+								isNewCustomer && (
 									<div>
-										<small>Si oui, veuillez compléter la section "Autre Détails"</small>
+										<div className="fieldset">
+											<h1>Informations</h1>
+											<div className="row">
+												<div className="col-md-6">
+													<TextField
+														id="companyName"
+														name="companyName"
+														label="Nom de la compagnie"
+														type="text"
+														classes={{ root: 'form-group' }}
+														inputProps={{ maxLength: 100 }}
+														helperText={
+															validations.companyName && validations.companyName.message
+														}
+														error={Boolean(validations.companyName)}
+														inputRef={register(validations.companyName)}
+														fullWidth
+													/>
+												</div>
+												<div className="col-md-6">
+													<TextField
+														id="companyContactName"
+														name="companyContactName"
+														label="Personne ressource"
+														classes={{ root: 'form-group' }}
+														inputProps={{ maxLength: 100 }}
+														helperText={
+															validations.companyContactName &&
+															validations.companyContactName.message
+														}
+														error={Boolean(validations.companyContactName)}
+														inputRef={register(validations.companyContactName)}
+														fullWidth
+													/>
+												</div>
+
+												<div className="col-md-6">
+													<TextField
+														id="companyPhone"
+														name="companyPhone"
+														label="Téléphone"
+														classes={{ root: 'form-group' }}
+														inputProps={{ maxLength: 100 }}
+														helperText={
+															validations.companyPhone && validations.companyPhone.message
+														}
+														error={Boolean(validations.companyPhone)}
+														inputRef={register(validations.companyPhone)}
+														fullWidth
+													/>
+												</div>
+												<div className="col-md-6">
+													<TextField
+														id="companyEmail"
+														name="companyEmail"
+														label="Email"
+														classes={{ root: 'form-group' }}
+														inputProps={{ maxLength: 100 }}
+														helperText={
+															validations.companyEmail && validations.companyEmail.message
+														}
+														error={Boolean(validations.companyEmail)}
+														inputRef={register(validations.companyEmail)}
+														fullWidth
+													/>
+												</div>
+											</div>
+										</div>
+
+										<AddressPartialForm
+											title="Adresse de la compagnie"
+											type="company"
+											validations={validations}
+											register={register}
+										/>
+									</div>
+								)
+							}
+						</CardBody>
+					</Card>
+
+					<Card className={classes.card}>
+						<CardHeader color="info">
+							<h4 className={classes.cardTitleWhite}>Information sur les adresses</h4>
+						</CardHeader>
+						<CardBody>
+							<AddressPartialForm
+								title="Adresse source"
+								type="source"
+								values={defaultValues.address.source}
+								validations={validations}
+								register={register}
+							/>
+
+							<AddressPartialForm
+								title="Adresse destination"
+								type="destination"
+								values={defaultValues.address.destination}
+								validations={validations}
+								register={register}
+							/>
+							<div className="fieldset">
+								<h1>Deadlines</h1>
+								<FormControl style={{ width: '100%' }} className="form-group">
+									<InputLabel id="dealinesLabel">Dealines</InputLabel>
+									<Controller
+										control={control}
+										name="deadlines"
+										defaultValue={deadlinesTxt.REGULIER}
+										as={
+											<Select
+												labelId="dealinesLabel"
+												id="deadlines"
+												name="deadlines"
+												inputRef={register(validations.deadlines)}
+												error={Boolean(validations.deadlines)}
+												fullWidth
+											>
+												{Object.keys(deadlinesTxt).map((item, i) => (
+													<MenuItem key={i} value={deadlinesTxt[item]}>
+														{deadlinesTxt[item]}
+													</MenuItem>
+												))}
+											</Select>
+										}
+									/>
+								</FormControl>
+							</div>
+						</CardBody>
+					</Card>
+
+					<Card className={classes.card}>
+						<CardHeader color="info">
+							<h4 className={classes.cardTitleWhite}>Information sur la marchandise</h4>
+						</CardHeader>
+						<CardBody>
+							<div className="fieldset">
+								<div className="row">
+									<div className="col-md-6">
+										<FormControl style={{ width: '100%' }} className="form-group">
+											<InputLabel id="typeTransportLabel">Type de transport</InputLabel>
+
+											<Controller
+												control={control}
+												name="typeTransport"
+												defaultValue="FLT"
+												as={
+													<Select
+														labelId="typeTransportLabel"
+														id="typeTransport"
+														inputRef={register(validations.typeTransport)}
+														error={Boolean(validations.typeTransport)}
+														fullWidth
+													>
+														{Object.keys(typeTransportTxt).map((item, i) => (
+															<MenuItem key={i} value={typeTransportTxt[item]}>
+																{typeTransportTxt[item]}
+															</MenuItem>
+														))}
+													</Select>
+												}
+											/>
+										</FormControl>
+									</div>
+
+									<div className="col-md-6">
+										<FormControl style={{ width: '100%' }} className="form-group">
+											<InputLabel id="commodityLabel">Marchandise</InputLabel>
+											<Controller
+												control={control}
+												name="commodity"
+												defaultValue={defaultValues.goods.commodity}
+												as={
+													<Select
+														labelId="commodityLabel"
+														id="commodity"
+														error={Boolean(validations.commodity)}
+														inputRef={register(validations.commodity)}
+														fullWidth
+													>
+														{Object.keys(typeMarchandiseTxt).map((item, i) => (
+															<MenuItem key={i} value={typeMarchandiseTxt[item]}>
+																{typeMarchandiseTxt[item]}
+															</MenuItem>
+														))}
+													</Select>
+												}
+											/>
+										</FormControl>
+									</div>
+
+									<div className="col-md-6">
+										<TextField
+											id="quantity"
+											name="quantity"
+											label="Quantité"
+											classes={{ root: 'form-group' }}
+											inputProps={{ maxLength: 50 }}
+											inputRef={register(validations.quantity)}
+											defaultValue={defaultValues.goods.quantity}
+											helperText={validations.quantity && validations.quantity.message}
+											error={Boolean(validations.quantity)}
+											fullWidth
+										/>
+									</div>
+
+									<div className={'col-md-6'} style={{ display: 'flex', alignItems: 'flex-end' }}>
+										<TextField
+											id="dimensions"
+											name="dimensions"
+											label="Dimensions"
+											classes={{ root: 'form-group' }}
+											className={classes.dimensions}
+											placeholder="L x W x H"
+											inputProps={{ maxLength: 50 }}
+											defaultValue={defaultValues.goods.dimension.full}
+											helperText={validations.dimensions && validations.dimensions.message}
+											error={Boolean(validations.dimensions)}
+											inputRef={register(validations.dimensions)}
+										/>
+										<Controller
+											control={control}
+											name="unitDimension"
+											defaultValue={defaultValues.goods.dimension.unit}
+											as={
+												<Select
+													labelId="unitDimension"
+													id="unitDimension"
+													name="unitDimension"
+													className={classes.unit}
+													inputRef={register(validations.unitDimension)}
+													error={Boolean(validations.unitDimension)}
+												>
+													<MenuItem value="Pied">Pied</MenuItem>
+													<MenuItem value="Pouce">Po</MenuItem>
+													<MenuItem value="Cm">CM</MenuItem>
+												</Select>
+											}
+										/>
+									</div>
+
+									<div className={'col-md-6'} style={{ display: 'flex', alignItems: 'flex-end' }}>
+										<TextField
+											id="totalWeight"
+											name="totalWeight"
+											label="Poids Total"
+											classes={{ root: 'form-group' }}
+											className={classes.dimensions}
+											placeholder="ex: 75000"
+											inputProps={{ maxLength: 50 }}
+											helperText={validations.weight && validations.weight.message}
+											error={Boolean(validations.weight)}
+											defaultValue={defaultValues.goods.totalWeight.weight}
+											inputRef={register(validations.weight)}
+										/>
+										<Controller
+											control={control}
+											name="unitWeight"
+											defaultValue={defaultValues.goods.totalWeight.unit}
+											as={
+												<Select
+													labelId="unitWeight"
+													id="unitWeight"
+													name="unitWeight"
+													className={classes.unitWeight}
+													inputRef={register(validations.unitWeight)}
+													error={Boolean(validations.unitWeight)}
+												>
+													<MenuItem value="lb">lb</MenuItem>
+													<MenuItem value="kg">kg</MenuItem>
+												</Select>
+											}
+										/>
+									</div>
+
+									<div className={'col-md-6'}>
+										<div style={{ marginTop: '10px' }}>
+											<InputLabel>Oversized</InputLabel>
+											<Controller
+												control={control}
+												name="oversized"
+												defaultValue={defaultValues.goods.oversized.toString()}
+												as={
+													<RadioGroup
+														row
+														aria-label="Oversize"
+														id="oversized"
+														name="oversized"
+														inputRef={register(validations.oversized)}
+													>
+														<FormControlLabel
+															value={'true'}
+															control={<Radio />}
+															label="Oui"
+														/>
+														<FormControlLabel
+															value={'false'}
+															control={<Radio />}
+															label="Non"
+														/>
+													</RadioGroup>
+												}
+											/>
+											<div>
+												<small>Si oui, veuillez compléter la section "Autre Détails"</small>
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
-						</div>
-					</div>
 
-					<div className="fieldset">
-						<h1>Hazmat</h1>
-						<div className="row">
-							<div className={'col-md-6'}>
-								<div style={{ marginTop: '10px' }}>
-									<RadioGroup row defaultValue="Non" aria-label="Oversize">
-										<FormControlLabel value="Oui" control={<Radio />} label="Oui" />
-										<FormControlLabel value="Non" control={<Radio />} label="Non" />
-									</RadioGroup>
+							<div className="fieldset">
+								<h1>Hazmat</h1>
+								<div className="row">
+									<div className={'col-md-6'}>
+										<div style={{ marginTop: '10px' }}>
+											<Controller
+												control={control}
+												name="hazmat"
+												defaultValue={defaultValues.goods.hazmat.isHasmat.toString()}
+												as={
+													<RadioGroup
+														row
+														defaultValue="Non"
+														aria-label="HazMat"
+														id="hazmat"
+														name="hazmat"
+														inputRef={register(validations.hazmat)}
+													>
+														<FormControlLabel
+															value={'true'}
+															control={<Radio />}
+															label="Oui"
+														/>
+														<FormControlLabel
+															value={'false'}
+															control={<Radio />}
+															label="Non"
+														/>
+													</RadioGroup>
+												}
+											/>
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
 
-					<div className="fieldset">
-						<h1>Autre détails</h1>
-						<div className="row">
-							<div className={'col-md-12'}>
-								<div style={{ marginTop: '10px' }}>
-									<TextareaAutosize
-										id="otherDetail"
-										name="otherDetail"
-										aria-label="otherDetail"
-										className="textareaAutosize"
-										label="otherDetail"
-										rowsMin={5}
-										onChange={e => handleChangeField(e)}
-										value={fields.otherDetail}
-										placeholder=""
-										style={{ width: '100%' }}
-									/>
+							<div className="fieldset">
+								<h1>Autre détails</h1>
+								<div className="row">
+									<div className={'col-md-12'}>
+										<div style={{ marginTop: '10px' }}>
+											<Controller
+												control={control}
+												name="otherDetail"
+												defaultValue={defaultValues.goods.details}
+												as={
+													<TextareaAutosize
+														id="otherDetail"
+														name="otherDetail"
+														aria-label="otherDetail"
+														className="textareaAutosize"
+														label="otherDetail"
+														rowsMin={5}
+														placeholder=""
+														style={{ width: '100%' }}
+													/>
+												}
+											/>
 
-									{validations.otherDetail?.error && (
-										<FormHelperText error={Boolean(validations.otherDetail.message)}>
-											{validations.otherDetail.message}
-										</FormHelperText>
-									)}
+											{validations.otherDetail?.error && (
+												<FormHelperText error={Boolean(validations.otherDetail.message)}>
+													{validations.otherDetail.message}
+												</FormHelperText>
+											)}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
-				</CardBody>
-			</Card>
+						</CardBody>
+					</Card>
 
-			<Card className={classes.card}>
-				<CardHeader color="info">
-					<h4 className={classes.cardTitleWhite}>Information sur la marchandise</h4>
-				</CardHeader>
-				<CardBody>
-					<div className="fieldset">
-						<div className="row">
-							<div className={'col-md-6'}>
-								<FormControl style={{ width: '100%' }} className="form-group">
-									<InputLabel id="transportLabel">Transport</InputLabel>
-									<Select
-										labelId="transportLabel"
-										id="transport"
-										name="transport"
-										defaultValue="Général"
-										// inputRef={register(validations.dealines)}
-										error={Boolean(validations.transport)}
-										fullWidth
-									>
-										<MenuItem value="Général">Général</MenuItem>
-										<MenuItem value="Spécilisé">Spécilisé</MenuItem>
-									</Select>
-								</FormControl>
-							</div>
+					<Card className={classes.card}>
+						<CardHeader color="info">
+							<h4 className={classes.cardTitleWhite}>Information sur le Transport</h4>
+						</CardHeader>
+						<CardBody>
+							<div className="fieldset">
+								<div className="row">
+									<div className={'col-md-6'}>
+										<FormControl style={{ width: '100%' }} className="form-group">
+											<InputLabel id="transportLabel">Transport</InputLabel>
+											<Controller
+												control={control}
+												name="transport"
+												defaultValue={defaultValues.equipment.transport}
+												as={
+													<Select
+														labelId="transportLabel"
+														id="transport"
+														name="transport"
+														inputRef={register(validations.transport)}
+														error={Boolean(validations.transport)}
+														fullWidth
+													>
+														{Object.keys(infoTransportTxt).map((item, i) => (
+															<MenuItem key={i} value={infoTransportTxt[item]}>
+																{infoTransportTxt[item]}
+															</MenuItem>
+														))}
+													</Select>
+												}
+											/>
+										</FormControl>
+									</div>
 
-							<div className={'col-md-6'}>
-								<FormControl style={{ width: '100%' }} className="form-group">
-									<InputLabel id="commodityLabel">Type de remorque</InputLabel>
-									<Select
-										labelId="remorqueLabel"
-										id="remorque"
-										name="remorque"
-										defaultValue="Drybox"
-										// inputRef={register(validations.dealines)}
-										error={Boolean(validations.commodity)}
-										fullWidth
-									>
-										<MenuItem value="Drybox">Drybox</MenuItem>
-										<MenuItem value="Réfrigéré">Réfrigéré</MenuItem>
-										<MenuItem value="Chauffé">Chauffé</MenuItem>
-									</Select>
-								</FormControl>
-							</div>
+									<div className={'col-md-6'}>
+										<FormControl style={{ width: '100%' }} className="form-group">
+											<InputLabel id="commodityLabel">Type de remorque</InputLabel>
+											<Controller
+												control={control}
+												name="remorque"
+												defaultValue={defaultValues.equipment.trailer}
+												as={
+													<Select
+														labelId="remorqueLabel"
+														id="remorque"
+														name="remorque"
+														inputRef={register(validations.remorque)}
+														error={Boolean(validations.commodity)}
+														fullWidth
+													>
+														{Object.keys(infoRemorqueTxt).map((item, i) => (
+															<MenuItem key={i} value={infoRemorqueTxt[item]}>
+																{infoRemorqueTxt[item]}
+															</MenuItem>
+														))}
+													</Select>
+												}
+											/>
+										</FormControl>
+									</div>
 
-							<div className={'col-md-6'}>
-								<div style={{ marginTop: '10px' }}>
-									<InputLabel>Toiles</InputLabel>
-									<RadioGroup row defaultValue="Oui" aria-label="Toiles">
-										<FormControlLabel value="Oui" control={<Radio />} label="Oui" />
-										<FormControlLabel value="Non" control={<Radio />} label="Non" />
-									</RadioGroup>
+									<div className={'col-md-6'}>
+										<div style={{ marginTop: '10px' }}>
+											<InputLabel>Toiles</InputLabel>
+											<Controller
+												control={control}
+												name="toiles"
+												defaultValue={defaultValues.equipment.toile.toString()}
+												as={
+													<RadioGroup
+														row
+														defaultValue="Oui"
+														aria-label="Toiles"
+														id="toiles"
+														name="toiles"
+														inputRef={register(validations.toiles)}
+													>
+														<FormControlLabel
+															value={'true'}
+															control={<Radio />}
+															label="Oui"
+														/>
+														<FormControlLabel
+															value={'false'}
+															control={<Radio />}
+															label="Non"
+														/>
+													</RadioGroup>
+												}
+											/>
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
 
-					<div className="fieldset">
-						<h1>Autre détails</h1>
-						<div className="row">
-							<div className={'col-md-12'}>
-								<div style={{ marginTop: '10px' }}>
-									<TextareaAutosize
-										id="otherDetailEquipment"
-										name="otherDetailEquipment"
-										aria-label="otherDetailEquipment"
-										className="textareaAutosize"
-										label="otherDetailEquipment"
-										rowsMin={5}
-										onChange={e => handleChangeField(e)}
-										value={fields.otherDetailEquipment}
-										placeholder=""
-										style={{ width: '100%' }}
-									/>
+							<div className="fieldset">
+								<h1>Autre détails</h1>
+								<div className="row">
+									<div className={'col-md-12'}>
+										<div style={{ marginTop: '10px' }}>
+											<Controller
+												control={control}
+												name="otherDetailEquipment"
+												defaultValue={defaultValues.equipment.details}
+												as={
+													<TextareaAutosize
+														id="otherDetailEquipment"
+														aria-label="otherDetailEquipment"
+														className="textareaAutosize"
+														label="otherDetailEquipment"
+														rowsMin={5}
+														placeholder=""
+														inputRef={register(validations.otherDetailEquipment)}
+														style={{ width: '100%' }}
+													/>
+												}
+											/>
 
-									{validations.otherDetailEquipment?.error && (
-										<FormHelperText error={Boolean(validations.otherDetailEquipment.message)}>
-											{validations.otherDetailEquipment.message}
-										</FormHelperText>
-									)}
+											{validations.otherDetailEquipment?.error && (
+												<FormHelperText
+													error={Boolean(validations.otherDetailEquipment.message)}
+												>
+													{validations.otherDetailEquipment.message}
+												</FormHelperText>
+											)}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
-				</CardBody>
-			</Card>
+						</CardBody>
+					</Card>
 
-			<Card>
-				<CardFooter>
-					<Button type="submit" color="info">
-						Mettre à jour
-					</Button>
-				</CardFooter>
-			</Card>
-		</div>
+					<Card>
+						<CardFooter style={{ position: 'fixed', right: '0px', bottom: '0px', zIndex: 9999 }}>
+							<Button type="submit" color="warning">
+								Mettre à jour
+							</Button>
+						</CardFooter>
+					</Card>
+				</form>
+			)}
+		</>
 	)
 }
 
 export default SubmissionForm
-
-// Top 100 films as rated by IMDb users. http://www.imdb.com/chart/top
-const top100Films = [
-	{ title: 'The Shawshank Redemption', year: 1994 },
-	{ title: 'The Godfather', year: 1972 },
-	{ title: 'The Godfather: Part II', year: 1974 },
-	{ title: 'The Dark Knight', year: 2008 },
-	{ title: '12 Angry Men', year: 1957 },
-	{ title: "Schindler's List", year: 1993 },
-	{ title: 'Pulp Fiction', year: 1994 },
-	{ title: 'The Lord of the Rings: The Return of the King', year: 2003 },
-	{ title: 'The Good, the Bad and the Ugly', year: 1966 },
-	{ title: 'Fight Club', year: 1999 },
-	{ title: 'The Lord of the Rings: The Fellowship of the Ring', year: 2001 },
-	{ title: 'Star Wars: Episode V - The Empire Strikes Back', year: 1980 },
-	{ title: 'Forrest Gump', year: 1994 },
-	{ title: 'Inception', year: 2010 },
-	{ title: 'The Lord of the Rings: The Two Towers', year: 2002 },
-	{ title: "One Flew Over the Cuckoo's Nest", year: 1975 },
-	{ title: 'Goodfellas', year: 1990 },
-	{ title: 'The Matrix', year: 1999 },
-	{ title: 'Seven Samurai', year: 1954 },
-	{ title: 'Star Wars: Episode IV - A New Hope', year: 1977 },
-	{ title: 'City of God', year: 2002 },
-	{ title: 'Se7en', year: 1995 },
-	{ title: 'The Silence of the Lambs', year: 1991 },
-	{ title: "It's a Wonderful Life", year: 1946 },
-	{ title: 'Life Is Beautiful', year: 1997 },
-	{ title: 'The Usual Suspects', year: 1995 },
-	{ title: 'Léon: The Professional', year: 1994 },
-	{ title: 'Spirited Away', year: 2001 },
-	{ title: 'Saving Private Ryan', year: 1998 },
-	{ title: 'Once Upon a Time in the West', year: 1968 },
-	{ title: 'American History X', year: 1998 },
-	{ title: 'Interstellar', year: 2014 },
-	{ title: 'Casablanca', year: 1942 },
-	{ title: 'City Lights', year: 1931 },
-	{ title: 'Psycho', year: 1960 },
-	{ title: 'The Green Mile', year: 1999 },
-	{ title: 'The Intouchables', year: 2011 },
-	{ title: 'Modern Times', year: 1936 },
-	{ title: 'Raiders of the Lost Ark', year: 1981 },
-	{ title: 'Rear Window', year: 1954 },
-	{ title: 'The Pianist', year: 2002 },
-	{ title: 'The Departed', year: 2006 },
-	{ title: 'Terminator 2: Judgment Day', year: 1991 },
-	{ title: 'Back to the Future', year: 1985 },
-	{ title: 'Whiplash', year: 2014 },
-	{ title: 'Gladiator', year: 2000 },
-	{ title: 'Memento', year: 2000 },
-	{ title: 'The Prestige', year: 2006 },
-	{ title: 'The Lion King', year: 1994 },
-	{ title: 'Apocalypse Now', year: 1979 },
-	{ title: 'Alien', year: 1979 },
-	{ title: 'Sunset Boulevard', year: 1950 },
-	{ title: 'Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb', year: 1964 },
-	{ title: 'The Great Dictator', year: 1940 },
-	{ title: 'Cinema Paradiso', year: 1988 },
-	{ title: 'The Lives of Others', year: 2006 },
-	{ title: 'Grave of the Fireflies', year: 1988 },
-	{ title: 'Paths of Glory', year: 1957 },
-	{ title: 'Django Unchained', year: 2012 },
-	{ title: 'The Shining', year: 1980 },
-	{ title: 'WALL·E', year: 2008 },
-	{ title: 'American Beauty', year: 1999 },
-	{ title: 'The Dark Knight Rises', year: 2012 },
-	{ title: 'Princess Mononoke', year: 1997 },
-	{ title: 'Aliens', year: 1986 },
-	{ title: 'Oldboy', year: 2003 },
-	{ title: 'Once Upon a Time in America', year: 1984 },
-	{ title: 'Witness for the Prosecution', year: 1957 },
-	{ title: 'Das Boot', year: 1981 },
-	{ title: 'Citizen Kane', year: 1941 },
-	{ title: 'North by Northwest', year: 1959 },
-	{ title: 'Vertigo', year: 1958 },
-	{ title: 'Star Wars: Episode VI - Return of the Jedi', year: 1983 },
-	{ title: 'Reservoir Dogs', year: 1992 },
-	{ title: 'Braveheart', year: 1995 },
-	{ title: 'M', year: 1931 },
-	{ title: 'Requiem for a Dream', year: 2000 },
-	{ title: 'Amélie', year: 2001 },
-	{ title: 'A Clockwork Orange', year: 1971 },
-	{ title: 'Like Stars on Earth', year: 2007 },
-	{ title: 'Taxi Driver', year: 1976 },
-	{ title: 'Lawrence of Arabia', year: 1962 },
-	{ title: 'Double Indemnity', year: 1944 },
-	{ title: 'Eternal Sunshine of the Spotless Mind', year: 2004 },
-	{ title: 'Amadeus', year: 1984 },
-	{ title: 'To Kill a Mockingbird', year: 1962 },
-	{ title: 'Toy Story 3', year: 2010 },
-	{ title: 'Logan', year: 2017 },
-	{ title: 'Full Metal Jacket', year: 1987 },
-	{ title: 'Dangal', year: 2016 },
-	{ title: 'The Sting', year: 1973 },
-	{ title: '2001: A Space Odyssey', year: 1968 },
-	{ title: "Singin' in the Rain", year: 1952 },
-	{ title: 'Toy Story', year: 1995 },
-	{ title: 'Bicycle Thieves', year: 1948 },
-	{ title: 'The Kid', year: 1921 },
-	{ title: 'Inglourious Basterds', year: 2009 },
-	{ title: 'Snatch', year: 2000 },
-	{ title: '3 Idiots', year: 2009 },
-	{ title: 'Monty Python and the Holy Grail', year: 1975 }
-]
-
-const defaultRule = {
-	required: {
-		value: false,
-		message: 'Ce champs est requis'
-	},
-	number: {
-		value: false,
-		message: 'Ce champs doit être un nombre'
-	},
-	minChar: {
-		value: 0,
-		message: `Ce champs ne conti`
-	},
-	maxChar: {
-		value: 255,
-		message: `Ce champs est trop  long`
-	},
-	min: {
-		value: 0,
-		message: `La valeur inscrite n'est pas suffisament haute`
-	},
-	max: {
-		value: 255,
-		message: `La valeur inscrite est trop haute`
-	},
-	pattern: {
-		value: null,
-		message: `Ce champs est incorrectement ortographié`
-	}
-}

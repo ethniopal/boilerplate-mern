@@ -9,7 +9,7 @@ import { Image, PictureAsPdf, FileCopy } from '@material-ui/icons'
 import DeleteIcon from '@material-ui/icons/Delete'
 import IconButton from '@material-ui/core/IconButton'
 import { haveAccess, userPermission } from '../../variables/user.js'
-const { ADMIN, COLLABORATOR, SELLER, DISPATCHER, GUESS } = userPermission
+const { ADMIN, COLLABORATOR } = userPermission
 
 const download = require('downloadjs')
 

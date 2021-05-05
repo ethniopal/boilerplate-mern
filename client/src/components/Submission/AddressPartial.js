@@ -1,7 +1,8 @@
 import React from 'react'
 import { TextField } from '@material-ui/core'
+// import { registerLocale } from 'react-datepicker'
 
-const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
+const AddressPartialForm = ({ title, validations, register, values, type = '', ...props }) => {
 	return (
 		<div className={title && 'fieldset'}>
 			{title && <h1>{title}</h1>}
@@ -15,6 +16,8 @@ const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
 						inputProps={{ maxLength: 255 }}
 						helperText={validations[`${type}Address`] && validations[`${type}Address`].message}
 						error={Boolean(validations[`${type}Address`])}
+						defaultValue={values?.address}
+						inputRef={register(validations[`${type}Address`])}
 						fullWidth
 					/>
 				</div>
@@ -27,6 +30,8 @@ const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
 						inputProps={{ maxLength: 150 }}
 						helperText={validations[`${type}City`] && validations[`${type}City`].message}
 						error={Boolean(validations[`${type}City`])}
+						defaultValue={values?.city}
+						inputRef={register(validations[`${type}City`])}
 						fullWidth
 					/>
 				</div>
@@ -39,6 +44,8 @@ const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
 						inputProps={{ maxLength: 150 }}
 						helperText={validations[`${type}Province`] && validations[`${type}Province`].message}
 						error={Boolean(validations[`${type}Province`])}
+						defaultValue={values?.province}
+						inputRef={register(validations[`${type}Province`])}
 						fullWidth
 					/>
 				</div>
@@ -51,6 +58,8 @@ const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
 						inputProps={{ maxLength: 150 }}
 						helperText={validations[`${type}Country`] && validations[`${type}Country`].message}
 						error={Boolean(validations[`${type}Country`])}
+						defaultValue={values?.country}
+						inputRef={register(validations[`${type}Country`])}
 						fullWidth
 					/>
 				</div>
@@ -63,6 +72,8 @@ const AddressPartialForm = ({ title, validations, type = '', ...props }) => {
 						inputProps={{ maxLength: 100 }}
 						helperText={validations[`${type}Zip`] && validations[`${type}Zip`].message}
 						error={Boolean(validations[`${type}Zip`])}
+						defaultValue={values?.zip}
+						inputRef={register(validations[`${type}`])}
 						fullWidth
 					/>
 				</div>

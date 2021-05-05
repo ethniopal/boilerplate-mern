@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import axios from 'axios'
-import { Redirect } from 'react-router-dom'
 //material-ui
-import { Paper, TextField, Button, FormControlLabel, Checkbox } from '@material-ui/core'
+import { Paper, TextField, Button } from '@material-ui/core'
 import { Alert } from '@material-ui/lab/'
 //libs
 import { useForm } from 'react-hook-form'

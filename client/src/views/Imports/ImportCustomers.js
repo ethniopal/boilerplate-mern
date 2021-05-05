@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import CustomerBreadcrumbs from '../../components/Breadcrumps/CustomerBreadcrumbs'
 import ImportCSV from './ImportCSV'
+import { customerStatuses } from '../../variables/client.js'
 
 const ImportCSVCustomer = () => {
 	const [countUpdated, setCountUpdated] = useState(0)
@@ -8,16 +9,29 @@ const ImportCSVCustomer = () => {
 	const [countSuccessfull, setCountSuccessfull] = useState(0)
 	const [countFail, setCountFail] = useState(0)
 
+	const [defaultValues, setDefaultValues] = useState({ status: customerStatuses[0] })
+
+	const handleChangeSelectType = e => {
+		setDefaultValues({ ...defaultValues, status: e.target.value })
+	}
+
 	const updateDB = async row => {
 		const abortController = new AbortController()
 		const token = localStorage.getItem('jwt')
 
+		row.status = defaultValues.status
+		// console.log(JSON.stringify(row))
+
 		try {
 			const response = await fetch(`${process.env.REACT_APP_API_URL}/api/import/customers`, {
 				signal: abortController.signal,
-				headers: { Authorization: `Bearer ${token}` },
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: 'application/json',
+					'Content-Type': 'application/json'
+				},
 				method: 'put',
-				data: row
+				body: JSON.stringify(row)
 			})
 			const data = await response.json()
 
@@ -25,7 +39,7 @@ const ImportCSVCustomer = () => {
 				if (data.action === 'created') {
 					setCountNew(prev => prev + 1)
 				}
-				if (data.action === 'update') {
+				if (data.action === 'updated') {
 					setCountUpdated(prev => prev + 1)
 				}
 				setCountSuccessfull(prev => prev + 1)
@@ -57,15 +71,11 @@ const ImportCSVCustomer = () => {
 			optional: true
 		},
 		{
-			name: 'status',
-			label: 'Status',
-			optional: false
-		},
-		{
 			name: 'phone.phone',
 			label: 'Téléphone',
 			optional: false
 		},
+
 		{
 			name: 'phone.ext',
 			label: 'Ext.',
@@ -154,11 +164,34 @@ const ImportCSVCustomer = () => {
 	return (
 		<>
 			<CustomerBreadcrumbs lastOption="Importation des clients" />
-			<p>Transfert ajouté : {countNew}</p>
-			<p>Transfert mis à jour : {countUpdated}</p>
-			<p>Transfert total réussi : {countSuccessfull}</p>
-			<p>Transfert Échoué: {countFail}</p>
-			<ImportCSV importedField={importedField} updateDB={updateDB} nextPageUrl={nextPageUrl} />
+			<div className="row">
+				<div className=" col-md-6">
+					<h4>Veuillez d'abord sélectionner le type</h4>
+					<select
+						value={defaultValues.status}
+						onChange={handleChangeSelectType}
+						style={{ padding: '0.5rem 1rem' }}
+					>
+						<option value="">Aucune</option>
+						{customerStatuses.map(item => (
+							<option value={item} key={item}>
+								{item}
+							</option>
+						))}
+					</select>
+				</div>
+			</div>
+			{defaultValues && (
+				<>
+					<ImportCSV importedField={importedField} updateDB={updateDB} nextPageUrl={nextPageUrl} />
+					<div className="col-md-6">
+						<p>Transfert ajouté : {countNew}</p>
+						<p>Transfert mis à jour : {countUpdated}</p>
+						<p>Transfert total réussi : {countSuccessfull}</p>
+						<p>Transfert Échoué: {countFail}</p>
+					</div>
+				</>
+			)}
 		</>
 	)
 }
